@@ -19,5 +19,5 @@
 ## 本地开发运行
 1. 拉取代码
 ```bash
-git clone https://github.com/你的GitHub用户名/ndidrs-vue-front.git
+git clone https://github.com/xiaosan717/NDIDRS_front.git
 cd ndidrs-vue-front
