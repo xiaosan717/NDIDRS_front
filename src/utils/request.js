@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const request = axios.create({
-  baseURL: '/api',
+  baseURL: 'https://ndidrsback-production.up.railway.app/api',
   timeout: 10000
 })
 
