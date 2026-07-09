@@ -24,16 +24,16 @@
       <el-form ref="loginForm" :model="form" :rules="rules" class="login-form">
         <template v-if="activeRole === 'student' || activeRole === 'admin'">
           <el-form-item prop="username">
-            <el-input v-model="form.username" :placeholder="t('login.username')" prefix-icon="User" class="input-field" />
+            <el-input v-model="form.username" :placeholder="t('login.username')" prefix-icon="User" class="input-field" autocomplete="off" />
           </el-form-item>
           <el-form-item prop="password">
-            <el-input v-model="form.password" type="password" :placeholder="t('login.password')" prefix-icon="Lock" class="input-field" show-password />
+            <el-input v-model="form.password" type="password" :placeholder="t('login.password')" prefix-icon="Lock" class="input-field" show-password autocomplete="new-password" />
           </el-form-item>
         </template>
 
         <template v-else-if="activeRole === 'counselor'">
           <el-form-item prop="college">
-            <el-select v-model="selectedCollege" :placeholder="t('login.selectCollege')" class="select-field" @change="onCollegeChange">
+            <el-select v-model="selectedCollege" :placeholder="t('login.selectCollege')" class="select-field" @change="onCollegeChange" autocomplete="off">
               <el-option
                 v-for="c in colleges"
                 :key="c.id"
@@ -43,7 +43,7 @@
             </el-select>
           </el-form-item>
           <el-form-item prop="classId">
-            <el-select v-model="selectedClass" :placeholder="t('login.selectClass')" class="select-field" @change="onClassChange">
+            <el-select v-model="selectedClass" :placeholder="t('login.selectClass')" class="select-field" @change="onClassChange" autocomplete="off">
               <el-option
                 v-for="cl in classList"
                 :key="cl.id"
@@ -53,13 +53,13 @@
             </el-select>
           </el-form-item>
           <el-form-item prop="password">
-            <el-input v-model="form.password" type="password" :placeholder="t('login.password')" prefix-icon="Lock" class="input-field" show-password />
+            <el-input v-model="form.password" type="password" :placeholder="t('login.password')" prefix-icon="Lock" class="input-field" show-password autocomplete="new-password" />
           </el-form-item>
         </template>
 
         <template v-else-if="activeRole === 'manager'">
           <el-form-item prop="building">
-            <el-select v-model="selectedBuilding" :placeholder="t('login.selectBuilding')" class="select-field" @change="onBuildingChange">
+            <el-select v-model="selectedBuilding" :placeholder="t('login.selectBuilding')" class="select-field" @change="onBuildingChange" autocomplete="off">
               <el-option
                 v-for="b in buildings"
                 :key="b.id"
@@ -69,7 +69,7 @@
             </el-select>
           </el-form-item>
           <el-form-item prop="password">
-            <el-input v-model="form.password" type="password" :placeholder="t('login.password')" prefix-icon="Lock" class="input-field" show-password />
+            <el-input v-model="form.password" type="password" :placeholder="t('login.password')" prefix-icon="Lock" class="input-field" show-password autocomplete="new-password" />
           </el-form-item>
         </template>
 

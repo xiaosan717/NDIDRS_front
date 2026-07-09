@@ -23,16 +23,16 @@
 
       <el-form ref="registerForm" :model="form" :rules="rules" class="register-form">
         <el-form-item prop="username">
-          <el-input v-model="form.username" :placeholder="t('register.username')" class="input-field" />
+          <el-input v-model="form.username" :placeholder="t('register.username')" class="input-field" autocomplete="off" />
         </el-form-item>
 
         <el-form-item prop="email">
-          <el-input v-model="form.email" :placeholder="t('register.email')" class="input-field" />
+          <el-input v-model="form.email" :placeholder="t('register.email')" class="input-field" autocomplete="off" />
         </el-form-item>
 
         <el-form-item prop="code">
           <div class="code-row">
-            <el-input v-model="form.code" :placeholder="t('register.code')" class="input-field code-input" />
+            <el-input v-model="form.code" :placeholder="t('register.code')" class="input-field code-input" autocomplete="off" />
             <el-button
               class="code-btn"
               @click="sendCode"
@@ -44,11 +44,11 @@
         </el-form-item>
 
         <el-form-item prop="password">
-          <el-input v-model="form.password" type="password" :placeholder="t('register.password')" class="input-field" show-password />
+          <el-input v-model="form.password" type="password" :placeholder="t('register.password')" class="input-field" show-password autocomplete="new-password" />
         </el-form-item>
 
         <el-form-item prop="confirmPassword">
-          <el-input v-model="form.confirmPassword" type="password" :placeholder="t('register.confirmPassword')" class="input-field" show-password />
+          <el-input v-model="form.confirmPassword" type="password" :placeholder="t('register.confirmPassword')" class="input-field" show-password autocomplete="new-password" />
         </el-form-item>
 
         <el-form-item>

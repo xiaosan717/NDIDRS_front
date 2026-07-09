@@ -23,33 +23,33 @@
 
       <el-form ref="registerForm" :model="form" :rules="rules" class="register-form">
         <el-form-item prop="realName">
-          <el-input v-model="form.realName" :placeholder="t('register.realName')" class="input-field" />
+          <el-input v-model="form.realName" :placeholder="t('register.realName')" class="input-field" autocomplete="off" />
         </el-form-item>
 
         <el-form-item prop="phone">
-          <el-input v-model="form.phone" :placeholder="t('register.phone')" class="input-field" />
+          <el-input v-model="form.phone" :placeholder="t('register.phone')" class="input-field" autocomplete="off" />
         </el-form-item>
 
         <el-form-item prop="college">
-          <el-select v-model="form.college" :placeholder="t('register.pleaseSelectCollege')" class="select-field" @change="handleCollegeChange">
+          <el-select v-model="form.college" :placeholder="t('register.pleaseSelectCollege')" class="select-field" @change="handleCollegeChange" autocomplete="off">
             <el-option v-for="item in collegeList" :key="item.id" :label="item.collegeName" :value="item.collegeName" />
           </el-select>
         </el-form-item>
 
         <el-form-item prop="classId">
-          <el-select v-model="form.classId" :placeholder="t('register.pleaseSelectClass')" class="select-field" :disabled="!form.college" @change="handleClassChange">
+          <el-select v-model="form.classId" :placeholder="t('register.pleaseSelectClass')" class="select-field" :disabled="!form.college" @change="handleClassChange" autocomplete="off">
             <el-option v-for="item in classList" :key="item.id" :label="item.grade + ' ' + item.className" :value="item.id" />
           </el-select>
         </el-form-item>
 
         <el-form-item prop="building">
-          <el-select v-model="form.building" :placeholder="t('register.pleaseSelectBuilding')" class="select-field" @change="handleBuildingChange">
+          <el-select v-model="form.building" :placeholder="t('register.pleaseSelectBuilding')" class="select-field" @change="handleBuildingChange" autocomplete="off">
             <el-option v-for="item in buildingList" :key="item.id" :label="item.buildingName" :value="item.buildingName" />
           </el-select>
         </el-form-item>
 
         <el-form-item prop="room">
-          <el-select v-model="form.room" :placeholder="t('register.pleaseSelectRoom')" class="select-field" :disabled="!form.building">
+          <el-select v-model="form.room" :placeholder="t('register.pleaseSelectRoom')" class="select-field" :disabled="!form.building" autocomplete="off">
             <el-option v-for="item in roomList" :key="item.id" :label="item.roomNumber" :value="item.roomNumber" />
           </el-select>
         </el-form-item>
