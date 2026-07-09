@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+const baseURL = import.meta.env.VUE_APP_API_BASE_URL
+
 const request = axios.create({
-  baseURL: 'https://ndidrsback-production.up.railway.app/api',
+  baseURL: baseURL,
   timeout: 10000
 })
 
