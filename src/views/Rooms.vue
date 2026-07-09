@@ -100,4 +100,41 @@ onMounted(() => {
 .table-row:last-child {
   border-bottom: none;
 }
+
+@media (max-width: 768px) {
+  .rooms {
+    padding: 16px;
+  }
+
+  .rooms h2 {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .rooms-table {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 14px 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    background: #fafafa;
+  }
+
+  .table-row span {
+    display: block;
+    word-break: break-all;
+  }
+}
 </style>

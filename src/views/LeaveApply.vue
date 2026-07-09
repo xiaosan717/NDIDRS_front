@@ -362,4 +362,95 @@ onMounted(() => {
   background: #e3f2fd;
   color: #1565c0;
 }
+
+@media (max-width: 768px) {
+  .leave-apply {
+    padding: 16px;
+    max-width: 100%;
+  }
+
+  .leave-apply h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .apply-form {
+    margin-bottom: 20px;
+  }
+
+  .form-row {
+    margin-bottom: 14px;
+  }
+
+  .form-label {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .radio-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .radio-item {
+    font-size: 13px;
+  }
+
+  .form-input,
+  .form-textarea {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .submit-btn,
+  .reset-btn {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .history-section {
+    padding-top: 16px;
+  }
+
+  .history-section h3 {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  .history-table {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 14px 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    background: #fafafa;
+  }
+
+  .table-row span {
+    display: block;
+  }
+
+  .status-tag {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+}
 </style>

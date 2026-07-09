@@ -321,4 +321,70 @@ onMounted(() => {
   background: #333333;
   border-color: #333333;
 }
+
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 16px 12px;
+    gap: 16px;
+  }
+
+  .profile-card,
+  .password-card {
+    padding: 16px;
+    max-width: 100%;
+  }
+
+  .page-title {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+
+  .profile-header {
+    margin-bottom: 16px;
+  }
+
+  .avatar-circle,
+  .avatar-img {
+    width: 72px;
+    height: 72px;
+    font-size: 30px;
+  }
+
+  .avatar-upload-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+
+  .profile-form,
+  .password-form {
+    width: 100%;
+  }
+
+  :deep(.el-form-item) {
+    margin-bottom: 14px;
+  }
+
+  :deep(.el-form-item__label) {
+    font-size: 13px;
+    padding-right: 8px;
+  }
+
+  .form-text {
+    font-size: 13px;
+  }
+
+  .form-actions {
+    margin-top: 12px;
+  }
+
+  :deep(.el-button) {
+    width: 100%;
+  }
+}
 </style>

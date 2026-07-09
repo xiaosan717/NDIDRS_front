@@ -19,9 +19,15 @@
         <span>{{ getTypeText(hazard.hazardType) }}</span>
         <span>{{ hazard.description }}</span>
         <span class="actions">
-          <button class="action-btn" @click="handleProcess(hazard)">{{ t('hazardHandle.processing') }}</button>
-          <button class="action-btn complete" @click="handleComplete(hazard)">完成</button>
-          <button class="action-btn reject" @click="handleReject(hazard)">驳回</button>
+          <template v-if="isDormManager">
+            <button class="action-btn complete" @click="handleApprove(hazard)">批准</button>
+            <button class="action-btn reject" @click="handleReject(hazard)">驳回</button>
+          </template>
+          <template v-else-if="isAdmin">
+            <button class="action-btn" @click="handleProcess(hazard)">{{ t('hazardHandle.processing') }}</button>
+            <button class="action-btn complete" @click="handleComplete(hazard)">完成</button>
+            <button class="action-btn reject" @click="handleReject(hazard)">驳回</button>
+          </template>
         </span>
       </div>
     </div>
@@ -29,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
@@ -39,6 +45,9 @@ const { t } = useI18n()
 const userStore = useUserStore()
 
 const pendingHazards = ref([])
+
+const isDormManager = computed(() => userStore.user?.role === 'DORM_MANAGER')
+const isAdmin = computed(() => userStore.user?.role === 'ADMIN')
 
 const getTypeText = (type) => {
   const texts = {
@@ -62,16 +71,34 @@ const fetchPendingHazards = async () => {
   }
 }
 
+const handleApprove = async (row) => {
+  try {
+    const res = await request.put(`/hazards/handle/${row.id}`, {
+      status: 'MANAGER_APPROVED',
+      handleRemark: '宿管已批准，转管理员处理'
+    })
+    if (res.code === 200) {
+      ElMessage.success(t('common.success'))
+      pendingHazards.value = pendingHazards.value.filter(h => h.id !== row.id)
+    } else {
+      ElMessage.error(res.message || t('common.error'))
+    }
+  } catch (error) {
+    ElMessage.error(t('common.error'))
+  }
+}
+
 const handleProcess = async (row) => {
   try {
     const res = await request.put(`/hazards/handle/${row.id}`, {
       status: 'PROCESSING',
-      handlerId: userStore.user.id,
-      handleRemark: '正在处理'
+      handleRemark: '管理员已受理，正在处理'
     })
     if (res.code === 200) {
       ElMessage.success(t('common.success'))
       fetchPendingHazards()
+    } else {
+      ElMessage.error(res.message || t('common.error'))
     }
   } catch (error) {
     ElMessage.error(t('common.error'))
@@ -82,12 +109,13 @@ const handleComplete = async (row) => {
   try {
     const res = await request.put(`/hazards/handle/${row.id}`, {
       status: 'COMPLETED',
-      handlerId: userStore.user.id,
-      handleRemark: '已完成'
+      handleRemark: '隐患已处理完成'
     })
     if (res.code === 200) {
       ElMessage.success(t('common.success'))
       pendingHazards.value = pendingHazards.value.filter(h => h.id !== row.id)
+    } else {
+      ElMessage.error(res.message || t('common.error'))
     }
   } catch (error) {
     ElMessage.error(t('common.error'))
@@ -98,12 +126,13 @@ const handleReject = async (row) => {
   try {
     const res = await request.put(`/hazards/handle/${row.id}`, {
       status: 'REJECTED',
-      handlerId: userStore.user.id,
-      handleRemark: '已驳回'
+      handleRemark: isDormManager.value ? '宿管已驳回' : '管理员已驳回'
     })
     if (res.code === 200) {
       ElMessage.success(t('common.success'))
       pendingHazards.value = pendingHazards.value.filter(h => h.id !== row.id)
+    } else {
+      ElMessage.error(res.message || t('common.error'))
     }
   } catch (error) {
     ElMessage.error(t('common.error'))
@@ -198,5 +227,60 @@ onMounted(() => {
   background: #ffebee;
   border-color: #c62828;
   color: #c62828;
+}
+
+@media (max-width: 768px) {
+  .hazard-handle {
+    padding: 16px;
+  }
+
+  .hazard-handle h2 {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .handle-table {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 14px 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    background: #fafafa;
+  }
+
+  .table-row span {
+    display: block;
+    word-break: break-all;
+  }
+
+  .empty-row {
+    padding: 24px 12px;
+    font-size: 13px;
+  }
+
+  .actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .action-btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 10px 12px;
+    font-size: 12px;
+  }
 }
 </style>

@@ -1,6 +1,7 @@
 <template>
-  <div class="home-container">
-    <aside class="sidebar">
+  <div class="home-container" :class="{ 'is-mobile': isMobile }">
+    <!-- PC端侧边栏 -->
+    <aside v-if="!isMobile" class="sidebar">
       <div class="sidebar-brand">
         <div class="brand-icon">N</div>
         <div class="brand-text">
@@ -41,18 +42,34 @@
             {{ currentLang === 'zh' ? 'EN' : '中' }}
           </button>
           <span class="user-info">{{ userInfo?.realName }}</span>
+          <button v-if="isMobile" class="logout-icon-btn" @click="handleLogout">⏻</button>
         </div>
       </header>
       
       <div class="content-wrapper">
-        <router-view />
+        <div class="content-inner">
+          <router-view />
+        </div>
       </div>
     </main>
+
+    <!-- 移动端底部Tab栏 -->
+    <nav v-if="isMobile && !isAdmin" class="mobile-tabbar">
+      <button
+        v-for="item in mobileNavItems"
+        :key="item.path"
+        :class="['tab-item', { active: activeMenu === item.path }]"
+        @click="navigate(item.path)"
+      >
+        <component :is="item.icon" class="tab-icon" />
+        <span class="tab-label">{{ item.label }}</span>
+      </button>
+    </nav>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, markRaw } from 'vue'
+import { ref, computed, markRaw, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
@@ -69,6 +86,23 @@ const toggleLang = () => {
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+
+// 响应式检测
+const windowWidth = ref(window.innerWidth)
+const isMobile = computed(() => windowWidth.value <= 768)
+const isAdmin = computed(() => userStore.user?.role === 'ADMIN')
+
+const updateWidth = () => {
+  windowWidth.value = window.innerWidth
+}
+
+onMounted(() => {
+  window.addEventListener('resize', updateWidth)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateWidth)
+})
 
 const activeMenu = ref('profile')
 
@@ -139,6 +173,14 @@ const navItems = computed(() => {
   return items
 })
 
+// 移动端Tab栏最多显示5个，用"更多"收纳
+const mobileNavItems = computed(() => {
+  const items = navItems.value
+  if (items.length <= 5) return items
+  // 保留前4个 + 个人中心
+  return [...items.slice(0, 4), items[items.length - 1]]
+})
+
 const navigate = (path) => {
   activeMenu.value = path
   router.push(path)
@@ -158,6 +200,7 @@ const handleLogout = () => {
   background: #f8f8f8;
 }
 
+/* === PC端侧边栏 === */
 .sidebar {
   width: 260px;
   background: #ffffff;
@@ -320,11 +363,13 @@ const handleLogout = () => {
   background: #fee2e2;
 }
 
+/* === 主内容区 === */
 .main-content {
   flex: 1;
   margin-left: 260px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .top-header {
@@ -379,5 +424,89 @@ const handleLogout = () => {
   flex: 1;
   padding: 40px;
   overflow-y: auto;
+}
+
+/* PC端内容居中 */
+.content-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* === 移动端底部Tab栏 === */
+.mobile-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: #ffffff;
+  display: flex;
+  border-top: 1px solid #e8e8e8;
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: #999999;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 4px 0;
+}
+
+.tab-item.active {
+  color: #000000;
+}
+
+.tab-icon {
+  font-size: 20px;
+}
+
+.tab-label {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.logout-icon-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #888888;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+/* === 移动端响应式 === */
+.home-container.is-mobile .main-content {
+  margin-left: 0;
+}
+
+.home-container.is-mobile .top-header {
+  padding: 16px 16px;
+}
+
+.home-container.is-mobile .page-title {
+  font-size: 17px;
+}
+
+.home-container.is-mobile .header-right {
+  gap: 12px;
+}
+
+.home-container.is-mobile .header-right .user-info {
+  display: none;
+}
+
+.home-container.is-mobile .content-wrapper {
+  padding: 16px;
+  padding-bottom: 72px;
 }
 </style>

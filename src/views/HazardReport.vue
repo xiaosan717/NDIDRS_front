@@ -284,4 +284,88 @@ const handleReset = () => {
   background: #ffebee;
   color: #c62828;
 }
+
+@media (max-width: 768px) {
+  .hazard-report {
+    padding: 16px;
+    max-width: 100%;
+  }
+
+  .hazard-report h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .report-form {
+    margin-bottom: 20px;
+  }
+
+  .form-row {
+    margin-bottom: 14px;
+  }
+
+  .form-label {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .form-select,
+  .form-textarea {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .submit-btn,
+  .reset-btn {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .history-section {
+    padding-top: 16px;
+  }
+
+  .history-section h3 {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  .history-table {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 14px 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    background: #fafafa;
+  }
+
+  .table-row span {
+    display: block;
+    word-break: break-all;
+  }
+
+  .status-tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    width: fit-content;
+  }
+}
 </style>

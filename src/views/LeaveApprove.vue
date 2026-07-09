@@ -194,4 +194,62 @@ onMounted(() => {
   border-color: #c62828;
   color: #c62828;
 }
+
+@media (max-width: 768px) {
+  .leave-approve {
+    padding: 16px;
+  }
+
+  .leave-approve h2 {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .approval-stage {
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
+
+  .approve-table {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 14px 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    background: #fafafa;
+  }
+
+  .table-row span {
+    display: block;
+    word-break: break-all;
+  }
+
+  .empty-row {
+    padding: 24px 12px;
+    font-size: 13px;
+  }
+
+  .actions {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .action-btn {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+}
 </style>

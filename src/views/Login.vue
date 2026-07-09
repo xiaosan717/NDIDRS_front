@@ -431,4 +431,50 @@ onMounted(() => {
 .register-link span:last-child:hover {
   text-decoration: underline;
 }
+
+/* === 移动端响应式 === */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 20px;
+  }
+
+  .lang-switch {
+    top: 20px;
+    right: 20px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .login-wrapper {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .brand {
+    font-size: 36px;
+  }
+
+  .tagline {
+    font-size: 12px;
+  }
+
+  .login-header {
+    margin-bottom: 28px;
+  }
+
+  .role-tab {
+    font-size: 13px;
+    padding: 12px 0;
+  }
+
+  .input-field {
+    font-size: 14px;
+    padding: 16px 0;
+  }
+
+  .login-btn {
+    height: 48px;
+    font-size: 14px;
+  }
+}
 </style>

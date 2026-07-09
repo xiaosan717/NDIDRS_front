@@ -213,4 +213,81 @@ onMounted(() => {
 :deep(.el-pagination.is-background .el-pager li.is-active) {
   background-color: #000000;
 }
+
+@media (max-width: 768px) {
+  .records {
+    padding: 16px;
+  }
+
+  .page-title {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+
+  .records-table {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 14px 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    background: #fafafa;
+  }
+
+  .table-row span {
+    display: block;
+    word-break: break-all;
+  }
+
+  .empty-row {
+    padding: 24px 12px;
+    font-size: 13px;
+  }
+
+  .status-tag {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+
+  .pagination-wrapper {
+    margin-top: 16px;
+    justify-content: center;
+  }
+
+  :deep(.el-pagination) {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  :deep(.el-pagination .el-pagination__sizes) {
+    width: 100%;
+    justify-content: center;
+  }
+
+  :deep(.el-pagination .el-pagination__jump) {
+    margin: 0;
+  }
+}
 </style>

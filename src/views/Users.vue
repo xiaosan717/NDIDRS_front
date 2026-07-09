@@ -143,4 +143,47 @@ const getRoleText = (role) => {
   background: #ffebee;
   color: #c62828;
 }
+
+@media (max-width: 768px) {
+  .users {
+    padding: 16px;
+  }
+
+  .users h2 {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .users-table {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 14px 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    background: #fafafa;
+  }
+
+  .table-row span {
+    display: block;
+    word-break: break-all;
+  }
+
+  .status-tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    width: fit-content;
+  }
+}
 </style>

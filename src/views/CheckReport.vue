@@ -560,4 +560,136 @@ onMounted(() => {
   border-color: #000000;
   color: #000000;
 }
+
+@media (max-width: 768px) {
+  .check-report {
+    padding: 16px;
+    max-width: 100%;
+  }
+
+  .report-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .report-header h2 {
+    font-size: 18px;
+  }
+
+  .header-info {
+    font-size: 13px;
+    gap: 12px;
+  }
+
+  .unchecked-warning {
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+
+  .warning-header {
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .warning-icon {
+    font-size: 18px;
+  }
+
+  .warning-title {
+    font-size: 14px;
+  }
+
+  .warning-count {
+    font-size: 12px;
+    padding: 3px 10px;
+  }
+
+  .unchecked-list {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .unchecked-item {
+    padding: 10px 12px;
+  }
+
+  .unchecked-item span:first-child {
+    font-size: 13px;
+  }
+
+  .room-selector {
+    margin-bottom: 16px;
+  }
+
+  .selector-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .select-field {
+    width: 100%;
+  }
+
+  .current-room-info {
+    padding: 10px 12px;
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+
+  .empty-tip {
+    padding: 24px 12px;
+    font-size: 13px;
+  }
+
+  .report-table {
+    margin-bottom: 16px;
+    border: none;
+    border-radius: 0;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 14px 12px;
+    border-bottom: 1px solid #e8e8e8;
+    background: #fafafa;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border: 1px solid #f0f0f0;
+    font-size: 13px;
+  }
+
+  .table-row span {
+    display: block;
+  }
+
+  .status-select {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .remark-input {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .submit-area {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .submit-btn,
+  .reset-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 13px;
+  }
+}
 </style>

@@ -709,4 +709,115 @@ onUnmounted(() => {
   background: #ffebee;
   color: #c62828;
 }
+
+/* === 移动端响应式 === */
+@media (max-width: 768px) {
+  .dashboard {
+    gap: 16px;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .dashboard-title {
+    font-size: 20px;
+  }
+
+  .export-buttons {
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .export-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+
+  .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .stat-item {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  .stat-value {
+    font-size: 28px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .charts-section {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .chart-card {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  .chart-container {
+    height: 220px;
+  }
+
+  .content-section {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .todo-section,
+  .records-section {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  .section-title {
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+
+  .todo-item {
+    padding: 12px;
+  }
+
+  .todo-label {
+    font-size: 13px;
+  }
+
+  .todo-count {
+    font-size: 14px;
+    padding: 3px 8px;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 16px;
+  }
+
+  .table-row span:first-child {
+    font-size: 11px;
+    color: #999;
+  }
+
+  .table-row span:nth-child(2) {
+    font-size: 14px;
+    font-weight: 600;
+  }
+}
 </style>
