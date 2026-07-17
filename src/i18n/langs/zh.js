@@ -90,7 +90,7 @@ export default {
     completed: '已完成',
     pendingHandle: '待处理',
     recentRecords: '最新记录',
-    time: '查寝日期',
+    time: '宿舍号',
     content: '学生姓名',
     operator: '操作人',
     pendingItems: '待办事项',
