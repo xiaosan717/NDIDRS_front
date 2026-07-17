@@ -58,7 +58,7 @@
           <div class="table-header">
             <span>{{ t('dashboard.time') }}</span>
             <span>{{ t('dashboard.content') }}</span>
-            <span>{{ t('records.time') }}</span>
+            <span>{{ t('rooms.roomNumber') }}</span>
             <span>{{ t('dashboard.status') }}</span>
           </div>
           <div v-for="record in latestRecords" :key="record.studentName + record.checkDate" class="table-row">
