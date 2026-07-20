@@ -1,0 +1,4 @@
+[[redirects]]
+  from = "/api/*"
+  to = "https://shturl.cc/0/:splat"
+  status = 200
