@@ -73,7 +73,7 @@ import { ref, computed, markRaw, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
-import { Monitor, Document, Ticket, Warning, Clock, Setting, User, UserFilled, VideoCamera } from '@element-plus/icons-vue'
+import { Monitor, Document, Ticket, Warning, Clock, Setting, User, UserFilled, VideoCamera, MagicStick } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 
 const { t, locale } = useI18n()
@@ -113,6 +113,7 @@ const routeNameToPath = (name) => {
     'Users': 'users',
     'Rooms': 'rooms',
     'Config': 'config',
+    'AiAnalysis': 'ai-analysis',
     'Meeting': 'meeting',
     'Profile': 'profile'
   }
@@ -145,6 +146,7 @@ const currentPageName = computed(() => {
       'users': t('home.users'),
       'rooms': t('home.rooms'),
       'config': t('home.config'),
+      'ai-analysis': t('home.aiAnalysis'),
       'meeting': t('home.meeting'),
       'profile': t('home.profile')
     }
@@ -157,6 +159,7 @@ const navItems = computed(() => {
   
   if (role === 'ADMIN' || role === 'DORM_MANAGER' || role === 'COUNSELOR') {
     items.push({ path: 'dashboard', label: t('home.dashboard'), icon: markRaw(Monitor) })
+    items.push({ path: 'ai-analysis', label: t('home.aiAnalysis'), icon: markRaw(MagicStick) })
   }
   
   if (role === 'DORM_LEADER' || role === 'DORM_MANAGER') {
