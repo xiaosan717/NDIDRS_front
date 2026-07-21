@@ -3,7 +3,7 @@
     <div class="page-heading">
       <div>
         <h2>{{ t('users.title') }}</h2>
-        <p>查询并管理学生账号，支持批量启用、停用和密码重置。</p>
+        <p v-if="canManage">查询并管理学生账号，支持批量启用、停用和密码重置。</p>
       </div>
       <el-button @click="loadUsers">刷新</el-button>
     </div>

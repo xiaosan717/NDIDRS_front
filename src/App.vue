@@ -1,8 +1,21 @@
 <template>
-  <router-view />
+  <ElConfigProvider :locale="currentElementLocale">
+    <router-view />
+  </ElConfigProvider>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { ElConfigProvider } from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import en from 'element-plus/es/locale/lang/en'
+import { useI18n } from 'vue-i18n'
+
+const { locale } = useI18n()
+
+const currentElementLocale = computed(() => {
+  return locale.value === 'zh' ? zhCn : en
+})
 </script>
 
 <style>

@@ -7,34 +7,46 @@
       </div>
     </div>
 
-    <!-- 宿管未填报宿舍提示 -->
+    <div v-if="showWarning" class="deadline-warning">
+      <el-icon class="warning-icon" :size="18"><AlarmClock /></el-icon>
+      <span class="warning-text">{{ t('checkReport.deadlineWarning', { deadline: deadlineTime, remaining: remainingTime }) }}</span>
+    </div>
+
+    <div class="header-actions">
+      <el-button @click="showHistory = true">{{ t('checkReport.viewHistory') }}</el-button>
+      <el-button @click="showDelegate = true">{{ t('checkReport.delegate') }}</el-button>
+    </div>
+
     <div v-if="isManager" class="unchecked-warning" :class="{'unchecked-warning-all-done': uncheckedRooms.length === 0}">
       <div class="warning-header">
-        <span class="warning-icon">{{ uncheckedRooms.length > 0 ? '⚠' : '✓' }}</span>
-        <span class="warning-title">{{ uncheckedRooms.length > 0 ? '今日未填报宿舍' : '今日已全部填报' }}</span>
+        <el-icon class="warning-icon" :size="18">
+          <Warning v-if="uncheckedRooms.length > 0" />
+          <CircleCheck v-else />
+        </el-icon>
+        <span class="warning-title">{{ uncheckedRooms.length > 0 ? t('checkReport.uncheckedToday') : t('checkReport.allChecked') }}</span>
         <span class="warning-count" :class="{'all-done': uncheckedRooms.length === 0}">
-          {{ uncheckedRooms.length > 0 ? uncheckedRooms.length + '间' : '全部完成' }}
+          {{ uncheckedRooms.length > 0 ? uncheckedRooms.length + t('checkReport.roomUnit') : t('checkReport.allCompleted') }}
         </span>
       </div>
       <div v-if="uncheckedRooms.length > 0" class="unchecked-list">
-        <div 
-          v-for="room in uncheckedRooms" 
-          :key="room.id" 
+        <div
+          v-for="room in uncheckedRooms"
+          :key="room.id"
           class="unchecked-item"
           @click="selectUncheckedRoom(room)"
         >
           <span>{{ room.roomNumber }}</span>
-          <span class="floor-info">{{ room.floor }}楼</span>
-          <span class="go-btn">填报 →</span>
+          <span class="floor-info">{{ room.floor }}{{ t('checkReport.floorUnit') }}</span>
+          <span class="go-btn">{{ t('checkReport.goReport') }}</span>
+          <el-icon><ArrowRight /></el-icon>
         </div>
       </div>
-      <div v-else class="all-done-text">所有宿舍均已完成今日查寝填报</div>
+      <div v-else class="all-done-text">{{ t('checkReport.allCheckedDesc') }}</div>
     </div>
 
-    <!-- 宿管选择宿舍 -->
     <div class="room-selector" v-if="needSelectRoom && isManager">
       <div class="selector-row">
-        <el-select v-model="selectedRoomId" :placeholder="'选择宿舍'" class="select-field" @change="onRoomSelect" filterable>
+        <el-select v-model="selectedRoomId" :placeholder="t('checkReport.selectRoom')" class="select-field" @change="onRoomSelect" filterable>
           <el-option v-for="r in roomList" :key="r.id" :label="r.roomNumber" :value="r.id" />
         </el-select>
       </div>
@@ -44,10 +56,33 @@
       <span>{{ t('checkReport.room') }}: {{ currentRoom.building }} - {{ currentRoom.roomNumber }}</span>
     </div>
 
+    <div class="photo-upload" v-if="currentRoom.roomNumber">
+      <label class="form-label">{{ t('checkReport.photos') }}</label>
+      <el-upload
+        class="upload-area"
+        drag
+        :show-file-list="false"
+        :before-upload="handleBeforeUpload"
+        :http-request="handleUploadRequest"
+        accept="image/*"
+      >
+        <div v-if="!uploadedImage" class="upload-placeholder">
+          <el-icon class="upload-icon" :size="40"><Camera /></el-icon>
+          <span class="upload-text">{{ t('checkReport.uploadHint') }}</span>
+        </div>
+        <div v-else class="uploaded-preview">
+          <img :src="uploadedImage" class="uploaded-image" />
+          <el-button class="remove-btn" type="danger" circle size="small" @click.stop="removeImage">
+            <el-icon><Close /></el-icon>
+          </el-button>
+        </div>
+      </el-upload>
+    </div>
+
     <div v-if="roomMembers.length > 0" class="report-table">
       <div class="table-header">
         <span>{{ t('users.realName') }}</span>
-        <span>班级</span>
+        <span>{{ t('users.className') }}</span>
         <span>{{ t('checkReport.status') }}</span>
         <span>{{ t('checkReport.notes') }}</span>
       </div>
@@ -69,29 +104,110 @@
     </div>
 
     <div v-if="roomMembers.length === 0 && !loading" class="empty-tip">
-      {{ currentRoom.roomNumber ? '该宿舍暂无学生' : '请选择宿舍' }}
+      {{ currentRoom.roomNumber ? t('checkReport.noStudents') : t('checkReport.selectRoom') }}
     </div>
 
     <div v-if="roomMembers.length > 0" class="submit-area">
       <button class="submit-btn" @click="handleSubmit" :disabled="submitting">{{ t('common.submit') }}</button>
       <button class="reset-btn" @click="handleReset">{{ t('common.cancel') }}</button>
     </div>
+
+    <div v-if="showHistory" class="dialog-overlay" @click.self="showHistory = false">
+      <div class="dialog-content">
+        <div class="dialog-header">
+          <h3>{{ t('checkReport.history') }}</h3>
+          <el-icon class="close-btn" :size="20" @click="showHistory = false"><Close /></el-icon>
+        </div>
+        <div class="form-content">
+          <div class="search-row">
+            <input v-model="historyDate" type="date" class="search-field" />
+            <button class="search-btn" @click="loadHistory">{{ t('common.search') }}</button>
+          </div>
+          <div v-if="historyRecords.length > 0" class="history-list">
+            <div v-for="record in historyRecords" :key="record.id" class="history-item">
+              <div class="history-header">
+                <span>{{ record.studentName }}</span>
+                <span :class="getStatusClass(record.status)">{{ getStatusText(record.status) }}</span>
+              </div>
+              <div class="history-body">
+                <span>{{ t('checkReport.notes') }}: {{ record.remark || '-' }}</span>
+                <span>{{ t('checkReport.submitTime') }}: {{ formatTime(record.submitTime) }}</span>
+              </div>
+              <div v-if="record.image" class="history-photo">
+                <el-image 
+                  :src="record.image" 
+                  :preview-src-list="[record.image]"
+                  fit="cover"
+                  class="history-photo-img"
+                  preview-teleported
+                />
+              </div>
+            </div>
+          </div>
+          <div v-else class="empty-row">
+            {{ t('common.noData') }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showDelegate" class="dialog-overlay" @click.self="showDelegate = false">
+      <div class="dialog-content">
+        <div class="dialog-header">
+          <h3>{{ t('checkReport.delegate') }}</h3>
+          <el-icon class="close-btn" :size="20" @click="showDelegate = false"><Close /></el-icon>
+        </div>
+        <div class="form-content">
+          <div class="form-row">
+            <label>{{ t('checkReport.delegateMember') }}</label>
+            <el-select v-model="delegateMemberId" :placeholder="t('common.pleaseSelect')" class="form-field">
+              <el-option v-for="member in delegateMembers" :key="member.id" :label="member.realName" :value="member.id" />
+            </el-select>
+          </div>
+          <div class="form-row">
+            <label>{{ t('checkReport.delegateDate') }}</label>
+            <input v-model="delegateDate" type="date" class="form-field" />
+          </div>
+          <div class="delegate-info">
+            <p>{{ t('checkReport.delegateTip') }}</p>
+          </div>
+          <div class="dialog-footer">
+            <button class="dialog-btn cancel" @click="showDelegate = false">{{ t('common.cancel') }}</button>
+            <button class="dialog-btn confirm" @click="handleDelegate">{{ t('common.submit') }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElIcon } from 'element-plus'
+import { AlarmClock, Warning, CircleCheck, ArrowRight, Camera, Close } from '@element-plus/icons-vue'
 import request from '../utils/request'
 
 const { t } = useI18n()
 const userStore = useUserStore()
 const submitting = ref(false)
 const loading = ref(false)
+const fileInput = ref(null)
 
 const today = new Date().toISOString().split('T')[0]
+const historyDate = ref(today)
+const uploadedImage = ref('')
+const showHistory = ref(false)
+const showDelegate = ref(false)
+const delegateMemberId = ref(null)
+const delegateDate = ref(today)
+const historyRecords = ref([])
+const showWarning = ref(false)
+const deadlineTime = ref('23:00')
+const remainingTime = ref('')
+
+let warningTimer = null
 
 const currentRoom = reactive({
   id: null,
@@ -104,6 +220,7 @@ const roomMembers = ref([])
 const roomList = ref([])
 const selectedRoomId = ref(null)
 const uncheckedRooms = ref([])
+const delegateMembers = ref([])
 
 const needSelectRoom = computed(() => {
   return userStore.user?.role === 'DORM_MANAGER'
@@ -126,23 +243,49 @@ const loadRooms = async (building) => {
 
 const loadUncheckedRooms = async (building) => {
   try {
-    console.log('正在加载未填报宿舍, building:', building)
     const res = await request.get('/checkRecords/uncheckedRooms', { params: { building } })
-    console.log('未填报宿舍响应完整:', JSON.stringify(res))
-    console.log('未填报宿舍响应 - code:', res.code, 'message:', res.message)
     if (res.code === 200 && res.data) {
       uncheckedRooms.value = res.data
-      console.log('未填报宿舍数量:', uncheckedRooms.value.length)
-      if (uncheckedRooms.value.length > 0) {
-        console.log('未填报宿舍列表:', JSON.stringify(uncheckedRooms.value))
-      }
     } else {
-      console.error('未填报宿舍响应异常 - code:', res.code, 'message:', res.message)
       uncheckedRooms.value = []
     }
   } catch (e) {
-    console.error('加载未填报宿舍列表失败:', e.response ? JSON.stringify(e.response.data) : e.message)
+    console.error('加载未填报宿舍列表失败:', e)
     uncheckedRooms.value = []
+  }
+}
+
+const loadDeadlineConfig = async () => {
+  try {
+    const res = await request.get('/config')
+    if (res.code === 200 && res.data) {
+      const deadline = res.data.find(c => c.configKey === 'check_deadline' || c.config_key === 'check_deadline')
+      if (deadline) {
+        deadlineTime.value = deadline.configValue || deadline.config_value || '23:00'
+      }
+    }
+    checkDeadlineWarning()
+  } catch (e) {
+    console.error('加载配置失败', e)
+  }
+}
+
+const checkDeadlineWarning = () => {
+  const now = new Date()
+  const [deadlineHour, deadlineMinute] = deadlineTime.value.split(':').map(Number)
+  const deadline = new Date()
+  deadline.setHours(deadlineHour, deadlineMinute, 0, 0)
+  
+  const diff = deadline - now
+  if (diff > 0 && diff < 30 * 60 * 1000) {
+    showWarning.value = true
+    const minutes = Math.floor(diff / 60000)
+    remainingTime.value = `${minutes}分钟`
+  } else if (diff <= 0) {
+    showWarning.value = true
+    remainingTime.value = '已超时'
+  } else {
+    showWarning.value = false
   }
 }
 
@@ -177,13 +320,16 @@ const onRoomSelect = async (roomId) => {
         status: 'IN_ROOM',
         remark: ''
       }))
+      delegateMembers.value = roomMembers.value.filter(m => m.id !== userStore.user?.id)
     } else {
       roomMembers.value = []
+      delegateMembers.value = []
     }
   } catch (error) {
     console.error('加载宿舍成员失败:', error)
     ElMessage.error(t('common.error'))
     roomMembers.value = []
+    delegateMembers.value = []
   } finally {
     loading.value = false
   }
@@ -196,18 +342,15 @@ const loadDormLeaderRoom = async () => {
   currentRoom.building = user.building
   currentRoom.roomNumber = user.room
 
-  // 先确保 roomList 已加载
   if (roomList.value.length === 0) {
     await loadRooms(user.building)
   }
 
-  // 从 roomList 中查找正确的 room_id
   const room = roomList.value.find(r => r.roomNumber === user.room && r.building === user.building)
   if (room) {
     currentRoom.id = room.id
     selectedRoomId.value = room.id
   } else {
-    // 如果找不到,从API获取room_id
     try {
       const res = await request.get('/dict/rooms', {
         params: { buildingName: user.building, roomNumber: user.room }
@@ -220,7 +363,6 @@ const loadDormLeaderRoom = async () => {
     }
   }
 
-  // 自动加载本宿舍成员
   loading.value = true
   try {
     const res = await request.get('/users/byRoom', {
@@ -234,6 +376,7 @@ const loadDormLeaderRoom = async () => {
         status: 'IN_ROOM',
         remark: ''
       }))
+      delegateMembers.value = roomMembers.value.filter(m => m.id !== userStore.user?.id)
     }
   } catch (error) {
     console.error('加载宿舍成员失败:', error)
@@ -250,6 +393,98 @@ const handleStatusChange = (row) => {
   }
 }
 
+const handleBeforeUpload = (file) => {
+  const isImage = file.type.startsWith('image/')
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件')
+    return false
+  }
+  const isLt10M = file.size / 1024 / 1024 < 10
+  if (!isLt10M) {
+    ElMessage.error('图片大小不能超过10MB')
+    return false
+  }
+  return true
+}
+
+const handleUploadRequest = (options) => {
+  const { file } = options
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    uploadedImage.value = event.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+const removeImage = () => {
+  uploadedImage.value = ''
+}
+
+const loadHistory = async () => {
+  try {
+    const params = {
+      checkDate: historyDate.value
+    }
+    if (currentRoom.id) {
+      params.roomId = currentRoom.id
+    }
+    const res = await request.get('/checkRecords', { params })
+    if (res.code === 200 && res.data) {
+      historyRecords.value = res.data.records || res.data
+    }
+  } catch (error) {
+    console.error('加载历史记录失败:', error)
+  }
+}
+
+const handleDelegate = async () => {
+  if (!delegateMemberId.value) {
+    ElMessage.warning(t('checkReport.pleaseSelectDelegate'))
+    return
+  }
+  if (!delegateDate.value) {
+    ElMessage.warning(t('checkReport.pleaseSelectDate'))
+    return
+  }
+  
+  try {
+    await request.post('/checkRecords/delegate', {
+      roomId: currentRoom.id,
+      delegateId: delegateMemberId.value,
+      delegateDate: delegateDate.value
+    })
+    ElMessage.success(t('common.success'))
+    showDelegate.value = false
+  } catch (error) {
+    ElMessage.error(t('common.error'))
+  }
+}
+
+const formatTime = (timeStr) => {
+  if (!timeStr) return '-'
+  const date = new Date(timeStr)
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const getStatusText = (status) => {
+  const texts = {
+    IN_ROOM: t('checkReport.allPresent'),
+    LEAVE: t('records.leave'),
+    LATE: t('checkReport.late'),
+    ABSENT: t('checkReport.absent')
+  }
+  return texts[status] || status
+}
+
+const getStatusClass = (status) => {
+  return `status-${status.toLowerCase()}`
+}
+
 const handleSubmit = async () => {
   submitting.value = true
   try {
@@ -260,9 +495,17 @@ const handleSubmit = async () => {
       remark: member.remark,
       submitterId: userStore.user.id
     }))
-    const res = await request.post('/checkRecords/batch', records)
+    
+    const data = { records }
+    if (uploadedImage.value) {
+      data.image = uploadedImage.value
+    }
+    
+    const res = await request.post('/checkRecords/batch', data)
     if (res.code === 200) {
       ElMessage.success(t('common.success'))
+      uploadedImage.value = ''
+      loadUncheckedRooms(currentRoom.building)
     } else {
       ElMessage.error(res.message)
     }
@@ -278,11 +521,15 @@ const handleReset = () => {
     member.status = 'IN_ROOM'
     member.remark = ''
   })
+  uploadedImage.value = ''
 }
 
 onMounted(() => {
   const role = userStore.user?.role
   const building = userStore.user?.building
+  
+  loadDeadlineConfig()
+  warningTimer = setInterval(checkDeadlineWarning, 60000)
   
   if (role === 'DORM_MANAGER' && building) {
     loadRooms(building)
@@ -290,6 +537,12 @@ onMounted(() => {
   } else if (role === 'DORM_LEADER') {
     loadRooms(building)
     loadDormLeaderRoom()
+  }
+})
+
+onUnmounted(() => {
+  if (warningTimer) {
+    clearInterval(warningTimer)
   }
 })
 </script>
@@ -307,7 +560,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .report-header h2 {
@@ -322,6 +575,49 @@ onMounted(() => {
   gap: 24px;
   font-size: 14px;
   color: #888888;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.action-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  border-color: #000000;
+  color: #000000;
+}
+
+.deadline-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff9e6;
+  border: 1px solid #ffd666;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.warning-icon {
+  font-size: 18px;
+}
+
+.warning-text {
+  font-size: 14px;
+  color: #d4a017;
+  font-weight: 600;
 }
 
 .unchecked-warning {
@@ -342,10 +638,6 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
-}
-
-.warning-icon {
-  font-size: 20px;
 }
 
 .warning-title {
@@ -447,6 +739,69 @@ onMounted(() => {
   border-radius: 8px;
   font-size: 14px;
   color: #333;
+}
+
+.photo-upload {
+  margin-bottom: 24px;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #888888;
+  margin-bottom: 8px;
+}
+
+.upload-area {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-area :deep(.el-upload-dragger) {
+  width: 100%;
+  padding: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.upload-icon {
+  color: #999;
+}
+
+.upload-text {
+  font-size: 14px;
+  color: #999;
+}
+
+.uploaded-preview {
+  position: relative;
+  display: inline-block;
+}
+
+.uploaded-image {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
+}
+
+.remove-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 10;
 }
 
 .empty-tip {
@@ -561,6 +916,205 @@ onMounted(() => {
   color: #000000;
 }
 
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  overflow: hidden;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dialog-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.close-btn {
+  cursor: pointer;
+  color: #999;
+  transition: color 0.2s ease;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
+.form-content {
+  padding: 24px;
+}
+
+.search-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.search-field {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.search-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.search-btn:hover {
+  border-color: #000000;
+}
+
+.history-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.history-item {
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.history-header span:first-child {
+  font-weight: 600;
+}
+
+.history-body {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: #666;
+}
+
+.history-photo {
+  margin-top: 8px;
+}
+
+.history-photo-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.form-row {
+  margin-bottom: 16px;
+}
+
+.form-row label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.form-field {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.delegate-info {
+  background: #f8f8f8;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.delegate-info p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.dialog-btn {
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.dialog-btn.cancel:hover {
+  border-color: #000000;
+}
+
+.dialog-btn.confirm {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+
+.dialog-btn.confirm:hover {
+  background: #333333;
+}
+
+.status-in_room {
+  color: #2e7d32;
+}
+
+.status-leave {
+  color: #1976d2;
+}
+
+.status-late {
+  color: #d4a017;
+}
+
+.status-absent {
+  color: #c62828;
+}
+
 @media (max-width: 768px) {
   .check-report {
     padding: 16px;
@@ -571,7 +1125,7 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
 
   .report-header h2 {
@@ -581,6 +1135,19 @@ onMounted(() => {
   .header-info {
     font-size: 13px;
     gap: 12px;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
+  }
+
+  .deadline-warning {
+    padding: 10px 12px;
+    margin-bottom: 14px;
+  }
+
+  .warning-text {
+    font-size: 13px;
   }
 
   .unchecked-warning {
@@ -639,6 +1206,18 @@ onMounted(() => {
     margin-bottom: 12px;
   }
 
+  .photo-upload {
+    margin-bottom: 16px;
+  }
+
+  .upload-area {
+    padding: 20px;
+  }
+
+  .upload-icon {
+    font-size: 30px;
+  }
+
   .empty-tip {
     padding: 24px 12px;
     font-size: 13px;
@@ -690,6 +1269,16 @@ onMounted(() => {
     width: 100%;
     padding: 12px;
     font-size: 13px;
+  }
+
+  .search-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .history-body {
+    flex-direction: column;
+    gap: 6px;
   }
 }
 </style>

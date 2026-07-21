@@ -9,12 +9,7 @@ const routes = [
   {
     path: '/register',
     name: 'Register',
-    component: () => import('../views/RegisterStep1.vue')
-  },
-  {
-    path: '/register/step2',
-    name: 'RegisterStep2',
-    component: () => import('../views/RegisterStep2.vue')
+    component: () => import('../views/Register.vue')
   },
   {
     path: '/',
@@ -32,6 +27,7 @@ const routes = [
       { path: 'users', name: 'Users', component: () => import('../views/Users.vue') },
       { path: 'rooms', name: 'Rooms', component: () => import('../views/Rooms.vue') },
       { path: 'config', name: 'Config', component: () => import('../views/Config.vue') },
+      { path: 'meeting', name: 'Meeting', component: () => import('../views/Meeting.vue') },
       { path: 'profile', name: 'Profile', component: () => import('../views/Profile.vue') }
     ]
   }

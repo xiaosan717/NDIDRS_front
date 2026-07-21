@@ -73,21 +73,22 @@ import { ref, computed, markRaw, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
-import { Monitor, Document, Ticket, Warning, Clock, Setting, User, UserFilled } from '@element-plus/icons-vue'
+import { Monitor, Document, Ticket, Warning, Clock, Setting, User, UserFilled, VideoCamera } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 
 const { t, locale } = useI18n()
 const currentLang = computed(() => locale.value)
 
 const toggleLang = () => {
-  locale.value = locale.value === 'zh' ? 'en' : 'zh'
+  const newLang = locale.value === 'zh' ? 'en' : 'zh'
+  locale.value = newLang
+  localStorage.setItem('locale', newLang)
 }
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-// 响应式检测
 const windowWidth = ref(window.innerWidth)
 const isMobile = computed(() => windowWidth.value <= 768)
 const isAdmin = computed(() => userStore.user?.role === 'ADMIN')
@@ -96,34 +97,59 @@ const updateWidth = () => {
   windowWidth.value = window.innerWidth
 }
 
+const activeMenu = ref('profile')
+
+const userInfo = computed(() => userStore.user)
+
+const routeNameToPath = (name) => {
+  const map = {
+    'Dashboard': 'dashboard',
+    'CheckReport': 'check-report',
+    'LeaveApply': 'leave-apply',
+    'LeaveApprove': 'leave-approve',
+    'HazardReport': 'hazard-report',
+    'HazardHandle': 'hazard-handle',
+    'Records': 'records',
+    'Users': 'users',
+    'Rooms': 'rooms',
+    'Config': 'config',
+    'Meeting': 'meeting',
+    'Profile': 'profile'
+  }
+  return map[name] || 'dashboard'
+}
+
+const updateActiveMenu = () => {
+  activeMenu.value = routeNameToPath(route.name)
+}
+
 onMounted(() => {
   window.addEventListener('resize', updateWidth)
+  updateActiveMenu()
+  router.afterEach(updateActiveMenu)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateWidth)
 })
 
-const activeMenu = ref('profile')
-
-const userInfo = computed(() => userStore.user)
-
 const currentPageName = computed(() => {
-  const pageNames = {
-    'dashboard': t('home.dashboard'),
-    'check-report': t('home.checkReport'),
-    'leave-apply': t('home.leaveApply'),
-    'leave-approve': t('home.leaveApprove'),
-    'hazard-report': t('home.hazardReport'),
-    'hazard-handle': t('home.hazardHandle'),
-    'records': t('home.records'),
-    'users': t('home.users'),
-    'rooms': t('home.rooms'),
-    'config': t('home.config'),
-    'profile': t('home.profile')
-  }
-  return pageNames[route.name] || ''
-})
+    const pageNames = {
+      'dashboard': t('home.dashboard'),
+      'check-report': t('home.checkReport'),
+      'leave-apply': t('home.leaveApply'),
+      'leave-approve': t('home.leaveApprove'),
+      'hazard-report': t('home.hazardReport'),
+      'hazard-handle': t('home.hazardHandle'),
+      'records': t('home.records'),
+      'users': t('home.users'),
+      'rooms': t('home.rooms'),
+      'config': t('home.config'),
+      'meeting': t('home.meeting'),
+      'profile': t('home.profile')
+    }
+    return pageNames[routeNameToPath(route.name)] || ''
+  })
 
 const navItems = computed(() => {
   const role = userStore.user?.role
@@ -167,9 +193,13 @@ const navItems = computed(() => {
     items.push({ path: 'rooms', label: t('home.rooms'), icon: markRaw(Document) })
     items.push({ path: 'config', label: t('home.config'), icon: markRaw(Setting) })
   }
-  
+
+  if (role === 'COUNSELOR' || role === 'DORM_LEADER' || role === 'STUDENT' || role === 'DORM_MANAGER') {
+    items.push({ path: 'meeting', label: t('home.meeting'), icon: markRaw(VideoCamera) })
+  }
+
   items.push({ path: 'profile', label: t('home.profile'), icon: markRaw(UserFilled) })
-  
+
   return items
 })
 
@@ -188,7 +218,7 @@ const navigate = (path) => {
 
 const handleLogout = () => {
   userStore.logout()
-  ElMessage.success('Logout successful')
+  ElMessage.success(t('common.success'))
   router.push('/login')
 }
 </script>

@@ -24,6 +24,9 @@
         <el-form-item :label="t('profile.role')">
           <span class="form-text">{{ getRoleText(form.role) }}</span>
         </el-form-item>
+        <el-form-item v-if="form.grade" :label="t('profile.grade')">
+          <span class="form-text">{{ form.grade }}</span>
+        </el-form-item>
         <el-form-item v-if="form.className" :label="t('profile.className')">
           <span class="form-text">{{ form.className }}</span>
         </el-form-item>
@@ -86,6 +89,7 @@ const form = ref({
   username: '',
   realName: '',
   role: '',
+  grade: '',
   className: '',
   building: '',
   room: '',
@@ -115,17 +119,18 @@ const loadUserInfo = () => {
   const user = userStore.user
   if (user) {
     form.value = {
-      id: user.id,
-      username: user.username,
-      realName: user.realName,
-      role: user.role,
-      className: user.className || '',
-      building: user.building || '',
-      room: user.room || '',
-      college: user.college || '',
-      phone: user.phone || '',
-      avatar: user.avatar || ''
-    }
+    id: user.id,
+    username: user.username,
+    realName: user.realName,
+    role: user.role,
+    grade: user.grade || '',
+    className: user.className || '',
+    building: user.building || '',
+    room: user.room || '',
+    college: user.college || '',
+    phone: user.phone || '',
+    avatar: user.avatar || ''
+  }
   }
 }
 

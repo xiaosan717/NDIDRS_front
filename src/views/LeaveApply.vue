@@ -12,24 +12,61 @@
           </label>
           <label class="radio-item">
             <input type="radio" v-model="form.leaveType" value="OUTSIDE_STAY" />
-            <span>校外住宿</span>
+            <span>{{ t('leaveApply.outsideStay') }}</span>
           </label>
         </div>
       </div>
       
       <div class="form-row">
         <label class="form-label">{{ t('leaveApply.startDate') }}</label>
-        <input type="datetime-local" v-model="form.startTime" class="form-input" />
+        <el-date-picker
+          v-model="form.startTime"
+          type="datetime"
+          :placeholder="t('common.pleaseSelect') + t('leaveApply.startDate')"
+          class="form-input"
+          value-format="YYYY-MM-DD HH:mm:ss"
+          :default-time="defaultStartTime"
+        />
       </div>
-      
+
       <div class="form-row">
         <label class="form-label">{{ t('leaveApply.endDate') }}</label>
-        <input type="datetime-local" v-model="form.endTime" class="form-input" />
+        <el-date-picker
+          v-model="form.endTime"
+          type="datetime"
+          :placeholder="t('common.pleaseSelect') + t('leaveApply.endDate')"
+          class="form-input"
+          value-format="YYYY-MM-DD HH:mm:ss"
+          :default-time="defaultEndTime"
+        />
       </div>
       
       <div class="form-row">
         <label class="form-label">{{ t('leaveApply.reason') }}</label>
         <textarea v-model="form.reason" rows="3" class="form-textarea" :placeholder="t('common.pleaseInput') + t('leaveApply.reason')"></textarea>
+      </div>
+
+      <div class="form-row">
+        <label class="form-label">凭证照片</label>
+        <el-upload
+          class="photo-upload"
+          action="#"
+          :auto-upload="false"
+          :on-change="handlePhotoChange"
+          :show-file-list="false"
+          accept="image/*"
+        >
+          <div v-if="form.image" class="photo-preview">
+            <img :src="form.image" alt="凭证照片" />
+            <div class="photo-overlay">
+              <el-icon><Delete /></el-icon>
+            </div>
+          </div>
+          <div v-else class="photo-placeholder">
+            <el-icon :size="32"><Plus /></el-icon>
+            <span>上传凭证照片</span>
+          </div>
+        </el-upload>
       </div>
       
       <div class="form-actions">
@@ -69,6 +106,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
+import { Plus, Delete } from '@element-plus/icons-vue'
 import request from '../utils/request'
 
 const { t } = useI18n()
@@ -77,12 +115,32 @@ const submitting = ref(false)
 const loadingHistory = ref(false)
 const leaveHistory = ref([])
 
+const defaultStartTime = new Date(2000, 0, 1, 0, 0, 0)
+const defaultEndTime = new Date(2000, 0, 1, 23, 59, 59)
+
 const form = reactive({
   leaveType: 'EVENING_LATE',
   startTime: '',
   endTime: '',
-  reason: ''
+  reason: '',
+  image: ''
 })
+
+const handlePhotoChange = (file) => {
+  const rawFile = file.raw
+  if (!rawFile) return
+  
+  if (rawFile.size > 5 * 1024 * 1024) {
+    ElMessage.warning('照片大小不能超过5MB')
+    return
+  }
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    form.image = e.target.result
+  }
+  reader.readAsDataURL(rawFile)
+}
 
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '-'
@@ -94,7 +152,7 @@ const formatDateTime = (dateStr) => {
 
 const getLeaveTypeText = (type) => {
   if (type === 'EVENING_LATE') return t('checkReport.late')
-  if (type === 'OUTSIDE_STAY') return '校外住宿'
+  if (type === 'OUTSIDE_STAY') return t('leaveApply.outsideStay')
   return type || '-'
 }
 
@@ -134,13 +192,22 @@ const fetchLeaveHistory = async () => {
 }
 
 const handleSubmit = async () => {
-  if (!form.startTime || !form.endTime) {
+  if (!form.startTime) {
     ElMessage.warning(t('common.pleaseInput') + t('leaveApply.startDate'))
+    return
+  }
+  if (!form.endTime) {
+    ElMessage.warning(t('common.pleaseInput') + t('leaveApply.endDate'))
     return
   }
   submitting.value = true
   try {
-    const data = { ...form, studentId: userStore.user.id }
+    const data = { 
+      ...form, 
+      studentId: userStore.user.id,
+      proofImage: form.image
+    }
+    delete data.image
     const res = await request.post('/leaves', data)
     if (res.code === 200) {
       ElMessage.success(t('common.success'))
@@ -161,6 +228,7 @@ const handleReset = () => {
   form.startTime = ''
   form.endTime = ''
   form.reason = ''
+  form.image = ''
 }
 
 onMounted(() => {
@@ -246,6 +314,71 @@ onMounted(() => {
 .form-textarea:focus {
   outline: none;
   border-color: #000000;
+}
+
+.photo-upload {
+  width: 100%;
+}
+
+.photo-preview {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.photo-preview:hover .photo-overlay {
+  opacity: 1;
+}
+
+.photo-overlay .el-icon {
+  font-size: 24px;
+  color: #fff;
+}
+
+.photo-placeholder {
+  width: 120px;
+  height: 120px;
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #999;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.photo-placeholder:hover {
+  border-color: #000000;
+}
+
+.photo-placeholder span {
+  font-size: 12px;
 }
 
 .form-actions {

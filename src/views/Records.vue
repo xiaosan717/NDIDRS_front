@@ -19,6 +19,7 @@
         <span>{{ t('checkReport.room') }}</span>
         <span>{{ t('checkReport.status') }}</span>
         <span>{{ t('checkReport.notes') }}</span>
+        <span>照片</span>
         <span>{{ t('records.submitTime') }}</span>
       </div>
       <div v-for="(record, index) in records" :key="index" class="table-row">
@@ -27,6 +28,17 @@
         <span>{{ record.roomNumber }}</span>
         <span class="status-tag" :class="record.status.toLowerCase()">{{ getStatusText(record.status) }}</span>
         <span>{{ record.remark || '-' }}</span>
+        <span>
+          <el-image 
+            v-if="record.image" 
+            :src="record.image" 
+            :preview-src-list="[record.image]"
+            fit="cover"
+            class="record-photo"
+            preview-teleported
+          />
+          <span v-else>-</span>
+        </span>
         <span>{{ formatTime(record.submitTime) }}</span>
       </div>
       <div v-if="records.length === 0" class="empty-row">
@@ -143,7 +155,7 @@ onMounted(() => {
 
 .table-header {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 2fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr 2fr 80px 1fr;
   padding: 16px 24px;
   background: #f8f8f8;
   font-size: 12px;
@@ -153,11 +165,19 @@ onMounted(() => {
 
 .table-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 2fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr 2fr 80px 1fr;
   padding: 16px 24px;
   border-bottom: 1px solid #f0f0f0;
   font-size: 14px;
   color: #333333;
+  align-items: center;
+}
+
+.record-photo {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .table-row:last-child {
