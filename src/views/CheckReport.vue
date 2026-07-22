@@ -550,6 +550,7 @@ onUnmounted(() => {
 <style scoped>
 .check-report {
   max-width: 900px;
+  margin: 0 auto;
   padding: 32px;
   background: #ffffff;
   border-radius: 12px;

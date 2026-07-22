@@ -82,6 +82,7 @@
           <span>{{ t('leaveApply.leaveType') }}</span>
           <span>{{ t('leaveApply.startDate') }}</span>
           <span>{{ t('leaveApply.endDate') }}</span>
+          <span>凭证</span>
           <span>{{ t('leaveApprove.status') }}</span>
         </div>
         <div v-if="loadingHistory" class="empty-row">
@@ -94,6 +95,17 @@
           <span>{{ getLeaveTypeText(record.leaveType) }}</span>
           <span>{{ formatDateTime(record.startTime) }}</span>
           <span>{{ formatDateTime(record.endTime) }}</span>
+          <span>
+            <el-image 
+              v-if="record.proofImage" 
+              :src="record.proofImage" 
+              :preview-src-list="[record.proofImage]"
+              fit="cover"
+              class="proof-photo"
+              preview-teleported
+            />
+            <span v-else>-</span>
+          </span>
           <span class="status-tag" :class="getStatusClass(record.status)">{{ getStatusText(record.status) }}</span>
         </div>
       </div>
@@ -200,6 +212,10 @@ const handleSubmit = async () => {
     ElMessage.warning(t('common.pleaseInput') + t('leaveApply.endDate'))
     return
   }
+  if (new Date(form.startTime) >= new Date(form.endTime)) {
+    ElMessage.warning('开始时间必须早于结束时间')
+    return
+  }
   submitting.value = true
   try {
     const data = { 
@@ -241,6 +257,7 @@ onMounted(() => {
 <style scoped>
 .leave-apply {
   max-width: 600px;
+  margin: 0 auto;
   padding: 32px;
   background: #ffffff;
   border-radius: 12px;
@@ -447,7 +464,7 @@ onMounted(() => {
 
 .table-header {
   display: grid;
-  grid-template-columns: 1fr 2fr 2fr 1fr;
+  grid-template-columns: 1fr 2fr 2fr 80px 1fr;
   padding: 12px 16px;
   background: #f8f8f8;
   font-size: 12px;
@@ -457,11 +474,12 @@ onMounted(() => {
 
 .table-row {
   display: grid;
-  grid-template-columns: 1fr 2fr 2fr 1fr;
+  grid-template-columns: 1fr 2fr 2fr 80px 1fr;
   padding: 12px 16px;
   border-bottom: 1px solid #f0f0f0;
   font-size: 14px;
   color: #333333;
+  align-items: center;
 }
 
 .table-row:last-child {
@@ -494,6 +512,13 @@ onMounted(() => {
 .status-tag.counselor-approved {
   background: #e3f2fd;
   color: #1565c0;
+}
+
+.proof-photo {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 @media (max-width: 768px) {

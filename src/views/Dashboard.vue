@@ -3,6 +3,7 @@
     <div class="dashboard-header">
       <h1 class="dashboard-title">{{ t('dashboard.title') }}</h1>
       <div class="export-buttons" v-if="showExportButtons">
+        <button class="ai-entry-btn" @click="router.push('/ai-analysis')">✦ {{ t('home.aiAnalysis') }}</button>
         <button class="export-btn" @click="exportCheckRecords">导出查寝记录</button>
         <button class="export-btn" @click="exportLeaveRecords">导出请假记录</button>
         <button class="export-btn" @click="exportHazardRecords">导出隐患记录</button>
@@ -543,6 +544,22 @@ onUnmounted(() => {
   color: #333333;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.ai-entry-btn {
+  padding: 10px 20px;
+  background: #111111;
+  border: 1px solid #111111;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-entry-btn:hover {
+  background: #333333;
 }
 
 .export-btn:hover {

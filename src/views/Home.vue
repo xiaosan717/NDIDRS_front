@@ -56,7 +56,7 @@
     <!-- 移动端底部Tab栏 -->
     <nav v-if="isMobile && !isAdmin" class="mobile-tabbar">
       <button
-        v-for="item in mobileNavItems"
+        v-for="item in mobileTabItems"
         :key="item.path"
         :class="['tab-item', { active: activeMenu === item.path }]"
         @click="navigate(item.path)"
@@ -64,7 +64,35 @@
         <component :is="item.icon" class="tab-icon" />
         <span class="tab-label">{{ item.label }}</span>
       </button>
+      <button class="tab-item" :class="{ active: showMoreMenu }" @click="showMoreMenu = !showMoreMenu">
+        <el-icon class="tab-icon"><More /></el-icon>
+        <span class="tab-label">更多</span>
+      </button>
     </nav>
+
+    <!-- 移动端更多菜单遮罩 -->
+    <div v-if="isMobile && showMoreMenu" class="more-overlay" @click="showMoreMenu = false">
+      <div class="more-menu" @click.stop>
+        <div class="more-menu-header">
+          <span>{{ t('home.profile') }}</span>
+          <el-icon class="more-close" @click="showMoreMenu = false"><Close /></el-icon>
+        </div>
+        <div class="more-menu-list">
+          <button
+            v-for="item in moreMenuItems"
+            :key="item.path"
+            :class="['more-item', { active: activeMenu === item.path }]"
+            @click="navigate(item.path); showMoreMenu = false"
+          >
+            <component :is="item.icon" class="more-icon" />
+            <span>{{ item.label }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 小夜AI悬浮助手 -->
+    <XiaoyeFloat v-if="!isAdmin && !isMobile" />
   </div>
 </template>
 
@@ -73,8 +101,9 @@ import { ref, computed, markRaw, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
-import { Monitor, Document, Ticket, Warning, Clock, Setting, User, UserFilled, VideoCamera } from '@element-plus/icons-vue'
+import { Monitor, Document, Ticket, Warning, Clock, Setting, User, UserFilled, VideoCamera, MagicStick, More, Close } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import XiaoyeFloat from '../components/XiaoyeFloat.vue'
 
 const { t, locale } = useI18n()
 const currentLang = computed(() => locale.value)
@@ -98,6 +127,7 @@ const updateWidth = () => {
 }
 
 const activeMenu = ref('profile')
+const showMoreMenu = ref(false)
 
 const userInfo = computed(() => userStore.user)
 
@@ -113,6 +143,7 @@ const routeNameToPath = (name) => {
     'Users': 'users',
     'Rooms': 'rooms',
     'Config': 'config',
+    'AiAnalysis': 'ai-analysis',
     'Meeting': 'meeting',
     'Profile': 'profile'
   }
@@ -145,6 +176,7 @@ const currentPageName = computed(() => {
       'users': t('home.users'),
       'rooms': t('home.rooms'),
       'config': t('home.config'),
+      'ai-analysis': t('home.aiAnalysis'),
       'meeting': t('home.meeting'),
       'profile': t('home.profile')
     }
@@ -157,6 +189,7 @@ const navItems = computed(() => {
   
   if (role === 'ADMIN' || role === 'DORM_MANAGER' || role === 'COUNSELOR') {
     items.push({ path: 'dashboard', label: t('home.dashboard'), icon: markRaw(Monitor) })
+    items.push({ path: 'ai-analysis', label: t('home.aiAnalysis'), icon: markRaw(MagicStick) })
   }
   
   if (role === 'DORM_LEADER' || role === 'DORM_MANAGER') {
@@ -203,12 +236,17 @@ const navItems = computed(() => {
   return items
 })
 
-// 移动端Tab栏最多显示5个，用"更多"收纳
-const mobileNavItems = computed(() => {
+// 移动端Tab栏最多显示4个，其余放"更多"
+const mobileTabItems = computed(() => {
   const items = navItems.value
   if (items.length <= 5) return items
-  // 保留前4个 + 个人中心
-  return [...items.slice(0, 4), items[items.length - 1]]
+  return items.slice(0, 4)
+})
+
+const moreMenuItems = computed(() => {
+  const items = navItems.value
+  if (items.length <= 5) return []
+  return items.slice(4)
 })
 
 const navigate = (path) => {
@@ -538,5 +576,77 @@ const handleLogout = () => {
 .home-container.is-mobile .content-wrapper {
   padding: 16px;
   padding-bottom: 72px;
+}
+
+/* === 更多菜单 === */
+.more-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.more-menu {
+  width: 100%;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 20px 16px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.more-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+}
+
+.more-close {
+  font-size: 20px;
+  color: #888;
+  cursor: pointer;
+}
+
+.more-menu-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.more-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 4px;
+  background: none;
+  border: none;
+  border-radius: 10px;
+  color: #555;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.more-item:active {
+  background: #f0f0f0;
+}
+
+.more-item.active {
+  color: #000;
+  background: #f0f0f0;
+}
+
+.more-icon {
+  font-size: 22px;
 }
 </style>

@@ -61,6 +61,7 @@
         <div class="table-header">
           <span>{{ t('hazardReport.hazardType') }}</span>
           <span>{{ t('hazardReport.description') }}</span>
+          <span>照片</span>
           <span>{{ t('hazardHandle.status') }}</span>
           <span>{{ t('hazardHandle.reportTime') }}</span>
         </div>
@@ -70,6 +71,17 @@
         <div v-for="(report, index) in hazardHistory" :key="index" class="table-row">
           <span>{{ getTypeText(report.hazardType) }}</span>
           <span class="description-cell">{{ report.description }}</span>
+          <span>
+            <el-image 
+              v-if="report.image" 
+              :src="report.image" 
+              :preview-src-list="[report.image]"
+              fit="cover"
+              class="hazard-photo"
+              preview-teleported
+            />
+            <span v-else>-</span>
+          </span>
           <span class="status-tag" :class="report.status.toLowerCase()">{{ getStatusText(report.status) }}</span>
           <span class="time-cell">{{ formatTime(report.reportTime) }}</span>
         </div>
@@ -226,6 +238,7 @@ onMounted(() => {
 <style scoped>
 .hazard-report {
   max-width: 600px;
+  margin: 0 auto;
   padding: 32px;
   background: #ffffff;
   border-radius: 12px;
@@ -437,7 +450,7 @@ onMounted(() => {
 
 .table-header {
   display: grid;
-  grid-template-columns: 1fr 3fr 1fr 1fr;
+  grid-template-columns: 1fr 3fr 80px 1fr 1fr;
   padding: 12px 16px;
   background: #f8f8f8;
   font-size: 12px;
@@ -447,7 +460,7 @@ onMounted(() => {
 
 .table-row {
   display: grid;
-  grid-template-columns: 1fr 3fr 1fr 1fr;
+  grid-template-columns: 1fr 3fr 80px 1fr 1fr;
   padding: 12px 16px;
   border-bottom: 1px solid #f0f0f0;
   font-size: 14px;
@@ -506,6 +519,13 @@ onMounted(() => {
 .status-tag.rejected {
   background: #ffebee;
   color: #c62828;
+}
+
+.hazard-photo {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 @media (max-width: 768px) {

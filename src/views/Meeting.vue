@@ -149,8 +149,8 @@
         <!-- 视频区域 -->
         <div class="video-area">
           <!-- 网格布局 -->
-          <div v-if="layoutMode === 'grid'" class="layout-grid">
-            <div class="video-item local-item">
+          <div v-if="layoutMode === 'grid'" class="layout-grid" :class="gridLayoutClass">
+            <div class="video-item local-item" @click="pinUser('local')">
               <div ref="localVideoRef" class="video-element"></div>
               <div class="video-overlay">
                 <span class="user-name">{{ userStore.user?.realName || userStore.user?.username }} ({{ t('meeting.me') }})</span>
@@ -160,7 +160,12 @@
                 </div>
               </div>
             </div>
-            <div v-for="remote in remoteUsers" :key="remote.getUserId()" class="video-item">
+            <div
+              v-for="remote in remoteUsers"
+              :key="remote.getUserId()"
+              class="video-item"
+              @click="pinUser(remote.getUserId())"
+            >
               <div :ref="el => setRemoteVideoRef(el, remote.getUserId())" class="video-element"></div>
               <div class="video-overlay">
                 <span class="user-name">{{ remote.getUserId() }}</span>
@@ -170,21 +175,39 @@
 
           <!-- 主讲人布局 -->
           <div v-else-if="layoutMode === 'speaker'" class="layout-speaker">
-            <div class="speaker-main">
-              <div ref="localVideoRef" class="video-element"></div>
+            <div class="speaker-main" @click="pinnedUserId && pinUser(null)">
+              <div ref="speakerMainRef" class="video-element"></div>
               <div class="video-overlay">
-                <span class="user-name">{{ userStore.user?.realName || userStore.user?.username }} ({{ t('meeting.me') }})</span>
-                <div class="user-status">
+                <span class="user-name">{{ !pinnedUserId ? (userStore.user?.realName || userStore.user?.username + ' (' + t('meeting.me') + ')') : pinnedUserId }}</span>
+                <div v-if="!pinnedUserId" class="user-status">
                   <el-icon v-if="!micEnabled" class="status-off"><Mute /></el-icon>
                   <el-icon v-if="!cameraEnabled" class="status-off"><VideoPause /></el-icon>
                 </div>
+                <span v-if="pinnedUserId" class="pin-indicator">{{ t('meeting.speaker') }}</span>
               </div>
             </div>
             <div class="speaker-side">
-              <div v-for="remote in remoteUsers" :key="remote.getUserId()" class="side-item">
+              <div
+                v-for="remote in remoteUsers"
+                :key="remote.getUserId()"
+                class="side-item"
+                :class="{ 'side-item-active': pinnedUserId === remote.getUserId() }"
+                @click="pinUser(remote.getUserId())"
+              >
                 <div :ref="el => setRemoteVideoRef(el, remote.getUserId())" class="video-element"></div>
                 <div class="video-overlay">
                   <span class="user-name">{{ remote.getUserId() }}</span>
+                </div>
+              </div>
+              <div
+                v-if="remoteUsers.length > 0"
+                class="side-item"
+                :class="{ 'side-item-active': !pinnedUserId }"
+                @click="pinUser(null)"
+              >
+                <div ref="localSideVideoRef" class="video-element"></div>
+                <div class="video-overlay">
+                  <span class="user-name">{{ userStore.user?.realName || userStore.user?.username }} ({{ t('meeting.me') }})</span>
                 </div>
               </div>
               <div v-if="remoteUsers.length === 0" class="side-empty">
@@ -362,8 +385,10 @@ const previewMicEnabled = ref(true)
 const previewCameraEnabled = ref(true)
 let previewStream = null
 
-// 会议相关
+// 视频区域
 const localVideoRef = ref(null)
+const localSideVideoRef = ref(null)
+const speakerMainRef = ref(null)
 const remoteVideoRefs = {}
 let trtcClient = null
 let localStream = null
@@ -388,12 +413,124 @@ const remoteUsers = ref([])
 // 布局
 const layoutMode = ref('grid') // grid | speaker | gallery
 
+// 主讲人/聚焦用户
+const pinnedUserId = ref(null) // 被放大的用户ID（null表示自己）
+
+// 移动端网格布局根据人数动态调整
+const gridLayoutClass = computed(() => {
+  const total = remoteUsers.value.length + 1 // +1 for local user
+  if (total === 1) return 'grid-layout-1'
+  if (total === 2) return 'grid-layout-2'
+  if (total === 3) return 'grid-layout-3'
+  if (total === 4) return 'grid-layout-4'
+  return 'grid-layout-4' // 5+ people, scrollable 2x2
+})
+
+const updateVideoPlayback = async () => {
+  // 确保DOM已经更新
+  await nextTick()
+
+  if (layoutMode.value !== 'speaker') {
+    // 网格或画廊模式
+    if (localStream && localVideoRef.value) {
+      try {
+        await localStream.play(localVideoRef.value)
+      } catch (e) {
+        console.log('播放本地视频失败', e)
+      }
+    }
+    remoteUsers.value.forEach(remote => {
+      const uid = remote.getUserId()
+      const el = remoteVideoRefs[uid]
+      if (el) {
+        try {
+          remote.play(el)
+        } catch (e) {
+          console.log('播放远端视频失败', uid, e)
+        }
+      }
+    })
+    return
+  }
+
+  // 主讲人模式
+  if (!pinnedUserId.value) {
+    // 没有选中任何人，显示自己为主讲人
+    if (localStream && speakerMainRef.value) {
+      try {
+        await localStream.play(speakerMainRef.value)
+      } catch (e) {
+        console.log('播放本地视频到主区域失败', e)
+      }
+    }
+    // 远端用户显示在侧边栏
+    remoteUsers.value.forEach(remote => {
+      const uid = remote.getUserId()
+      const el = remoteVideoRefs[uid]
+      if (el) {
+        try {
+          remote.play(el)
+        } catch (e) {
+          console.log('播放远端视频失败', uid, e)
+        }
+      }
+    })
+  } else {
+    // 选中了某个远端用户作为主讲人
+    const pinnedUser = remoteUsers.value.find(u => u.getUserId() === pinnedUserId.value)
+    if (pinnedUser && speakerMainRef.value) {
+      try {
+        await pinnedUser.play(speakerMainRef.value)
+      } catch (e) {
+        console.log('播放主讲人视频失败', e)
+      }
+    }
+    // 其他远端用户显示在侧边栏（排除当前主讲人）
+    remoteUsers.value.forEach(remote => {
+      const uid = remote.getUserId()
+      if (uid === pinnedUserId.value) return // 主讲人已经在主区域播放
+      const el = remoteVideoRefs[uid]
+      if (el) {
+        try {
+          remote.play(el)
+        } catch (e) {
+          console.log('播放远端视频失败', uid, e)
+        }
+      }
+    })
+    // 本地视频显示在侧边栏
+    if (localStream && localSideVideoRef.value) {
+      try {
+        await localStream.play(localSideVideoRef.value)
+      } catch (e) {
+        console.log('播放本地视频到侧边栏失败', e)
+      }
+    }
+  }
+}
+
+// 监听布局变化，重新播放视频
+watch(layoutMode, () => {
+  updateVideoPlayback()
+})
+
+// 点击放大某个用户
+const pinUser = (uid) => {
+  pinnedUserId.value = pinnedUserId.value === uid ? null : uid
+}
+
+watch(pinnedUserId, () => {
+  updateVideoPlayback()
+})
+
 // 聊天
 const showChatPanel = ref(false)
 const chatMessages = ref([])
 const chatInput = ref('')
 const chatMessagesRef = ref(null)
 const unreadCount = ref(0)
+let chatPollingTimer = null
+let lastMessageId = 0
 
 // 会议时长
 const meetingStartTime = ref(null)
@@ -526,6 +663,39 @@ const initPreviewStream = async () => {
   }
 }
 
+// 统一的预览流重新创建函数（TRTC SDK的mute/unmute在某些环境下会访问null的内部mediaStream）
+const recreatePreviewStream = async (newAudio, newVideo) => {
+  if (!previewStream) return false
+  const TRTC = (await import('trtc-js-sdk')).default
+  try {
+    await previewStream.stop()
+  } catch (e) { console.log('停止预览流失败', e) }
+  try {
+    previewStream.close()
+  } catch (e) { console.log('关闭预览流失败', e) }
+
+  previewMicEnabled.value = newAudio
+  previewCameraEnabled.value = newVideo
+
+  const res = await request.get('/trtc/userSig')
+  if (res.code !== 200) {
+    ElMessage.error(res.message)
+    return false
+  }
+
+  previewStream = TRTC.createStream({
+    userId: String(res.data.userId),
+    audio: newAudio,
+    video: newVideo
+  })
+  await previewStream.initialize()
+  await nextTick()
+  if (previewVideoRef.value) {
+    await previewStream.play(previewVideoRef.value)
+  }
+  return true
+}
+
 const togglePreviewMic = async () => {
   if (!previewStream) return
   try {
@@ -534,35 +704,28 @@ const togglePreviewMic = async () => {
       ElMessage.warning('至少需要保持麦克风或摄像头开启')
       return
     }
-    if (previewMicEnabled.value) {
-      await previewStream.muteAudio()
-      previewMicEnabled.value = false
-    } else {
-      await previewStream.unmuteAudio()
-      previewMicEnabled.value = true
-    }
+    await recreatePreviewStream(!previewMicEnabled.value, previewCameraEnabled.value)
   } catch (e) {
     console.error('切换预览麦克风失败', e)
+    ElMessage.error('切换麦克风失败: ' + (e.message || '未知错误'))
   }
 }
 
 const togglePreviewCamera = async () => {
-  if (!previewStream) return
+  if (!previewStream) {
+    ElMessage.warning('预览流未初始化，请刷新页面')
+    return
+  }
   try {
     // 如果要关闭摄像头，且麦克风已关闭，则不允许关闭（必须保留一个）
     if (previewCameraEnabled.value && !previewMicEnabled.value) {
       ElMessage.warning('至少需要保持麦克风或摄像头开启')
       return
     }
-    if (previewCameraEnabled.value) {
-      await previewStream.muteVideo()
-      previewCameraEnabled.value = false
-    } else {
-      await previewStream.unmuteVideo()
-      previewCameraEnabled.value = true
-    }
+    await recreatePreviewStream(previewMicEnabled.value, !previewCameraEnabled.value)
   } catch (e) {
     console.error('切换预览摄像头失败', e)
+    ElMessage.error('切换摄像头失败: ' + (e.message || '未知错误'))
   }
 }
 
@@ -636,6 +799,9 @@ const enterMeeting = async (roomId) => {
     trtcClient.on('stream-removed', (event) => {
       const uid = event.stream.getUserId()
       remoteUsers.value = remoteUsers.value.filter(u => u.getUserId() !== uid)
+      if (pinnedUserId.value === uid) {
+        pinnedUserId.value = null
+      }
     })
 
     trtcClient.on('error', (error) => {
@@ -667,8 +833,19 @@ const enterMeeting = async (roomId) => {
 
     pageState.value = 'inMeeting'
     await nextTick()
-    await localStream.play(localVideoRef.value)
+    if (layoutMode.value === 'speaker') {
+      if (speakerMainRef.value) {
+        await localStream.play(speakerMainRef.value)
+      }
+    } else {
+      if (localVideoRef.value) {
+        await localStream.play(localVideoRef.value)
+      }
+    }
     await trtcClient.publish(localStream)
+
+    // 启动聊天轮询
+    startChatPolling(roomId)
 
     // 开始计时
     meetingStartTime.value = Date.now()
@@ -698,48 +875,89 @@ const setRemoteVideoRef = (el, userId) => {
     const remoteUser = remoteUsers.value.find(u => u.getUserId() === userId)
     if (remoteUser) {
       nextTick(() => {
-        try {
-          remoteUser.play(el)
-        } catch (e) {
-          console.error('播放远端视频失败', e)
+        // 只在非主讲人模式下自动播放；主讲人模式下由 updateVideoPlayback 统一管理
+        if (layoutMode.value !== 'speaker') {
+          try {
+            remoteUser.play(el)
+          } catch (e) {
+            console.error('播放远端视频失败', e)
+          }
         }
       })
     }
   }
 }
 
+const recreateLocalStream = async (newAudio, newVideo) => {
+  if (!localStream || !trtcClient) return false
+  const TRTC = (await import('trtc-js-sdk')).default
+  const userId = localStream.getUserId()
+
+  // 先取消发布并停止旧流
+  try {
+    await trtcClient.unpublish(localStream)
+  } catch (e) { console.log('unpublish失败', e) }
+  try {
+    localStream.stop()
+  } catch (e) { console.log('停止本地流失败', e) }
+  try {
+    localStream.close()
+  } catch (e) { console.log('关闭本地流失败', e) }
+
+  micEnabled.value = newAudio
+  cameraEnabled.value = newVideo
+
+  localStream = TRTC.createStream({
+    userId: String(userId),
+    audio: newAudio,
+    video: newVideo
+  })
+  await localStream.initialize()
+
+  // 重新播放
+  await nextTick()
+  await updateVideoPlayback()
+
+  // 重新发布
+  await trtcClient.publish(localStream)
+  return true
+}
+
 const toggleMic = async () => {
   if (!localStream) return
   try {
-    if (micEnabled.value) {
-      await localStream.muteAudio()
-      micEnabled.value = false
-    } else {
-      await localStream.unmuteAudio()
-      micEnabled.value = true
-    }
+    await recreateLocalStream(!micEnabled.value, cameraEnabled.value)
   } catch (e) {
     console.error('切换麦克风失败', e)
+    ElMessage.error('切换麦克风失败: ' + (e.message || '未知错误'))
   }
 }
 
 const toggleCamera = async () => {
   if (!localStream) return
   try {
-    if (cameraEnabled.value) {
-      await localStream.muteVideo()
-      cameraEnabled.value = false
-    } else {
-      await localStream.unmuteVideo()
-      cameraEnabled.value = true
-    }
+    await recreateLocalStream(micEnabled.value, !cameraEnabled.value)
   } catch (e) {
     console.error('切换摄像头失败', e)
+    ElMessage.error('切换摄像头失败: ' + (e.message || '未知错误'))
   }
 }
 
 const toggleScreenShare = async () => {
   if (!trtcClient) return
+
+  // 检测是否支持屏幕共享
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  if (isMobile) {
+    ElMessage.warning('移动端暂不支持屏幕共享，请使用PC端')
+    return
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    ElMessage.error('您的浏览器不支持屏幕共享，请使用最新版Chrome/Edge/Firefox')
+    return
+  }
+
   try {
     if (screenSharing.value) {
       // 停止屏幕共享：先unpublish屏幕流，再重新publish本地流
@@ -766,6 +984,25 @@ const toggleScreenShare = async () => {
         screenAudio: false,
         screen: true
       })
+
+      // 监听屏幕共享停止事件（用户点击停止按钮）
+      screenStream.on('screen-sharing-stopped', async () => {
+        console.log('用户停止了屏幕共享')
+        try {
+          await trtcClient.unpublish(screenStream)
+          screenStream.close()
+          screenStream = null
+          screenSharing.value = false
+          // 重新发布本地摄像头流
+          if (localStream) {
+            await trtcClient.publish(localStream)
+          }
+          ElMessage.success(t('meeting.stopScreenShare'))
+        } catch (e) {
+          console.error('停止屏幕共享失败', e)
+        }
+      })
+
       await screenStream.initialize()
       await trtcClient.publish(screenStream)
       screenSharing.value = true
@@ -773,7 +1010,25 @@ const toggleScreenShare = async () => {
     }
   } catch (e) {
     console.error('屏幕共享失败', e)
-    ElMessage.error('屏幕共享失败: ' + (e.message || ''))
+    let errorMsg = '屏幕共享失败'
+    if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+      errorMsg = '您取消了屏幕共享'
+    } else if (e.name === 'NotSupportedError') {
+      errorMsg = '您的浏览器不支持屏幕共享'
+    } else if (e.name === 'NotFoundError') {
+      errorMsg = '未找到可共享的屏幕'
+    } else if (e.message && e.message.includes('INVALID_OPERATION')) {
+      errorMsg = '您的浏览器版本过低，请升级后重试'
+    }
+    ElMessage.error(errorMsg)
+    // 确保出错后恢复摄像头流
+    if (!screenSharing.value && localStream) {
+      try {
+        await trtcClient.publish(localStream)
+      } catch (publishErr) {
+        console.error('恢复摄像头流失败', publishErr)
+      }
+    }
   }
 }
 
@@ -807,6 +1062,8 @@ const leaveMeeting = async () => {
       await trtcClient.leave()
       trtcClient = null
     }
+    // 停止聊天轮询
+    stopChatPolling()
   } catch (e) {
     console.error('退出会议异常', e)
   } finally {
@@ -856,10 +1113,61 @@ const addChatMessage = (sender, content, isSelf) => {
   })
 }
 
-const sendChatMessage = () => {
+const startChatPolling = async (roomId) => {
+  if (chatPollingTimer) {
+    clearInterval(chatPollingTimer)
+  }
+  const pollMessages = async () => {
+    try {
+      const res = await request.get(`/chat/${encodeURIComponent(roomId)}/messages`, {
+        params: { lastId: lastMessageId }
+      })
+      if (res.code === 200 && res.data && res.data.length > 0) {
+        const currentSender = userStore.user?.realName || userStore.user?.username || 'me'
+        res.data.forEach(msg => {
+          if (msg.sender !== currentSender) {
+            addChatMessage(msg.sender, msg.content, false)
+          }
+          if (msg.id && msg.id > lastMessageId) {
+            lastMessageId = msg.id
+          }
+        })
+      }
+    } catch (e) {
+      console.log('轮询消息失败', e)
+    }
+  }
+  await pollMessages()
+  chatPollingTimer = setInterval(pollMessages, 1500)
+}
+
+const stopChatPolling = () => {
+  if (chatPollingTimer) {
+    clearInterval(chatPollingTimer)
+    chatPollingTimer = null
+  }
+}
+
+const sendChatMessage = async () => {
   const content = chatInput.value.trim()
   if (!content) return
-  addChatMessage(userStore.user?.realName || userStore.user?.username || t('meeting.me'), content, true)
+
+  const sender = userStore.user?.realName || userStore.user?.username || t('meeting.me')
+  addChatMessage(sender, content, true)
+
+  try {
+    const res = await request.post(`/chat/${encodeURIComponent(meetingForm.roomId)}/send`, {
+      sender: sender,
+      content: content
+    })
+    if (res.code !== 200) {
+      ElMessage.error(res.message || '发送失败')
+    }
+  } catch (e) {
+    console.error('发送消息失败', e)
+    ElMessage.error('发送失败')
+  }
+
   chatInput.value = ''
 }
 
@@ -1059,6 +1367,7 @@ onUnmounted(() => {
   display: flex;
   gap: 16px;
   margin-top: 32px;
+  padding-bottom: 20px;
 }
 
 /* ==================== 会议中样式 ==================== */
@@ -1185,6 +1494,13 @@ onUnmounted(() => {
   color: #ff4d4f;
 }
 
+.pin-indicator {
+  background: #8b5cf6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
 /* 网格布局 */
 .layout-grid {
   display: grid;
@@ -1195,10 +1511,17 @@ onUnmounted(() => {
 
 .video-item {
   position: relative;
-  background: #1a1a2e;
+  background: #2a2a3e;
   border-radius: 8px;
   overflow: hidden;
-  min-height: 200px;
+  min-height: 180px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.video-item:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 /* 主讲人布局 */
@@ -1231,6 +1554,18 @@ onUnmounted(() => {
   border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.side-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.side-item-active {
+  border: 2px solid #8b5cf6;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
 }
 
 .side-empty {
@@ -1285,6 +1620,7 @@ onUnmounted(() => {
   border-left: 1px solid #2a2a3e;
   display: flex;
   flex-direction: column;
+  max-height: 100vh;
 }
 
 .chat-header {
@@ -1401,51 +1737,649 @@ onUnmounted(() => {
   border: 2px solid #1677ff;
 }
 
-/* 响应式 */
+/* ==================== 移动端钉钉风格适配 ==================== */
 @media (max-width: 768px) {
   .meeting-page {
-    padding: 12px;
+    padding: 0;
+    min-height: 100dvh;
+    background: #000;
   }
 
   .meeting-lobby {
-    padding: 20px;
+    padding: 20px 16px;
+    min-height: 100dvh;
+  }
+
+  .lobby-card {
+    padding: 24px 18px;
+    border-radius: 16px;
+  }
+
+  .lobby-card h1 {
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  .lobby-card p {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  /* ===== 预览页：钉钉入会前风格 ===== */
+  .meeting-preview {
+    padding: 0;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: #0f0f1a;
+  }
+
+  .preview-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    padding: 16px 16px 0;
+    margin: 0;
+    text-align: center;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
+  }
+
+  .preview-header h2 {
+    font-size: 17px;
+    margin: 0 0 2px;
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .preview-room {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    margin: 0;
+  }
+
+  .preview-body {
+    flex: 1;
+    width: 100%;
+    gap: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   .preview-video-wrap {
     width: 100%;
-    height: 240px;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    background: #000;
+    flex: 1;
   }
 
-  .layout-grid {
-    grid-template-columns: 1fr;
+  .preview-video-wrap :deep(video) {
+    object-fit: cover;
   }
 
-  .layout-speaker {
-    flex-direction: column;
+  .preview-camera-off {
+    background: #1a1a2e;
   }
 
-  .speaker-side {
-    width: 100%;
-    flex-direction: row;
-    height: 120px;
-  }
-
-  .side-item {
-    width: 160px;
-    height: 100px;
-  }
-
-  .chat-panel {
-    width: 100%;
+  .preview-controls {
     position: absolute;
+    bottom: 100px;
+    left: 0;
     right: 0;
-    top: 48px;
-    bottom: 72px;
+    display: flex;
+    justify-content: center;
+    gap: 24px;
     z-index: 10;
   }
 
+  .preview-controls .el-button {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    padding: 0;
+    background: rgba(50,50,60,0.85);
+    border: none;
+    color: #fff;
+    backdrop-filter: blur(8px);
+  }
+
+  .preview-controls .el-button.el-button--danger {
+    background: rgba(245,108,108,0.9);
+  }
+
+  .preview-controls .el-button .el-icon {
+    font-size: 22px;
+  }
+
+  .preview-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 20px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    z-index: 10;
+    background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+  }
+
+  .preview-footer .el-button {
+    flex: 1;
+    max-width: 160px;
+    height: 44px;
+    border-radius: 22px;
+    font-size: 15px;
+    font-weight: 500;
+    border: none;
+  }
+
+  .preview-footer .el-button--primary {
+    background: #1677ff;
+  }
+
+  .preview-footer .el-button--default {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+  }
+
+  /* ===== 会议中：钉钉视频会议风格 ===== */
+  .meeting-room-container {
+    border-radius: 0;
+    height: 100dvh;
+    background: #000;
+    position: relative;
+  }
+
+  /* 顶部状态栏：半透明悬浮 */
+  .room-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    padding: 10px 14px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.55), transparent);
+    border-bottom: none;
+    flex-wrap: nowrap;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .room-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .room-id {
+    font-size: 15px;
+    font-weight: 500;
+    color: #fff;
+  }
+
+  .room-subject {
+    font-size: 12px;
+    color: rgba(255,255,255,0.75);
+    margin-top: 2px;
+  }
+
+  .room-duration {
+    font-size: 12px;
+    color: rgba(255,255,255,0.8);
+    background: rgba(255,255,255,0.12);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: 4px;
+    display: inline-block;
+  }
+
+  .room-actions {
+    flex-shrink: 0;
+    gap: 6px;
+  }
+
+  .room-actions .el-button {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    color: #fff;
+    font-size: 16px;
+  }
+
+  .room-actions .el-button--primary {
+    background: #1677ff;
+  }
+
+  /* 主体铺满 */
+  .room-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .video-area {
+    flex: 1;
+    padding: 0;
+    min-height: 0;
+    background: #000;
+  }
+
+  /* 视频覆盖层 */
+  .video-overlay {
+    padding: 4px 8px;
+    background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+  }
+
+  .user-name {
+    font-size: 11px;
+    color: #fff;
+  }
+
+  /* ========== 网格布局：根据人数动态调整 ========== */
+  .layout-grid {
+    display: grid;
+    gap: 3px;
+    height: 100%;
+    width: 100%;
+    padding: 3px;
+    align-content: center;
+    justify-content: center;
+    overflow-y: auto;
+  }
+
+  .layout-grid .video-item {
+    min-height: 0;
+    min-width: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    background: #1a1a2e;
+  }
+
+  .layout-grid .video-item :deep(video) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* 1人：全屏 */
+  .layout-grid.grid-layout-1 {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+  .layout-grid.grid-layout-1 .video-item {
+    aspect-ratio: 3/4;
+    max-height: calc(100dvh - 100px);
+  }
+
+  /* 2人：左右各半 */
+  .layout-grid.grid-layout-2 {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: 1fr;
+  }
+  .layout-grid.grid-layout-2 .video-item {
+    aspect-ratio: 3/4;
+    max-height: calc(100dvh - 100px);
+  }
+
+  /* 3人：上面1个大，下面2个 */
+  .layout-grid.grid-layout-3 {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: 1.2fr 1fr;
+  }
+  .layout-grid.grid-layout-3 .video-item:first-child {
+    grid-column: 1 / -1;
+  }
+  .layout-grid.grid-layout-3 .video-item {
+    aspect-ratio: 16/9;
+  }
+
+  /* 4人：2x2 */
+  .layout-grid.grid-layout-4 {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+  }
+  .layout-grid.grid-layout-4 .video-item {
+    aspect-ratio: 4/3;
+  }
+
+  /* 主讲人布局 */
+  .layout-speaker {
+    flex-direction: column;
+    gap: 0;
+    height: 100%;
+    padding: 3px;
+  }
+
+  .speaker-main {
+    flex: 1;
+    min-height: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    background: #1a1a2e;
+  }
+
+  .speaker-main :deep(video) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .speaker-side {
+    position: absolute;
+    right: 8px;
+    top: 60px;
+    width: 80px;
+    height: auto;
+    max-height: calc(100dvh - 200px);
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    gap: 6px;
+    padding: 0;
+    z-index: 40;
+    background: transparent;
+  }
+
+  .side-item {
+    width: 80px;
+    height: 106px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background: rgba(30,30,40,0.6);
+    border: 2px solid transparent;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    position: relative;
+  }
+
+  .side-item-active {
+    border-color: #1677ff;
+  }
+
+  .side-item .user-name {
+    font-size: 10px;
+  }
+
+  /* 画廊布局 */
+  .layout-gallery {
+    flex-direction: column;
+    gap: 0;
+    height: 100%;
+    padding: 3px;
+  }
+
+  .gallery-main {
+    flex: 1;
+    min-height: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    background: #1a1a2e;
+  }
+
+  .gallery-main :deep(video) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .gallery-strip {
+    position: absolute;
+    right: 8px;
+    top: 60px;
+    width: 80px;
+    height: auto;
+    max-height: calc(100dvh - 200px);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    gap: 6px;
+    z-index: 40;
+  }
+
+  .gallery-item {
+    width: 80px;
+    height: 106px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background: rgba(30,30,40,0.6);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ========== 底部Dock工具栏：紧凑布局 ========== */
   .room-toolbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 60;
+    padding: 10px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.4) 60%, transparent);
+    border-top: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .toolbar-left {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .toolbar-left .el-button {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    padding: 0;
+    background: rgba(80,80,90,0.7);
+    border: none;
+    color: #fff;
+    backdrop-filter: blur(6px);
+    flex-shrink: 0;
+  }
+
+  .toolbar-left .el-button.el-button--danger {
+    background: rgba(245,108,108,0.9);
+  }
+
+  .toolbar-left .el-button.el-button--primary {
+    background: #1677ff;
+  }
+
+  .toolbar-left .el-button .el-icon {
+    font-size: 18px;
+  }
+
+  .toolbar-center {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .toolbar-center .el-button {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    padding: 0;
+    font-size: 22px;
+    min-width: unset;
+  }
+
+  .toolbar-center .el-button span {
+    display: none;
+  }
+
+  .toolbar-right {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .toolbar-right .el-button {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    padding: 0;
+    background: rgba(80,80,90,0.7);
+    border: none;
+    color: #fff;
+    backdrop-filter: blur(6px);
+    flex-shrink: 0;
+  }
+
+  .toolbar-right .el-button.el-button--primary {
+    background: #1677ff;
+  }
+
+  .toolbar-right .el-button .el-icon {
+    font-size: 18px;
+  }
+
+  .toolbar-right .chat-badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    background: #f56c6c;
+    color: #fff;
+    font-size: 9px;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+  }
+
+  /* ========== 聊天面板：抽屉式，避开底部工具栏 ========== */
+  .chat-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 72px;
+    width: 100%;
+    height: calc(100dvh - 140px);
+    max-height: 520px;
+    border-radius: 16px 16px 0 0;
+    z-index: 200;
+    animation: slideUp 0.25s ease;
+    background: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.5);
+  }
+
+  .chat-panel .chat-header {
     padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 500;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .chat-close {
+    font-size: 18px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .chat-panel .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .chat-panel .chat-input-area {
+    padding: 10px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    background: #1a1a2e;
+  }
+
+  .chat-panel .chat-input-area .el-input {
+    flex: 1;
+  }
+
+  .chat-panel .chat-input-area .el-input__wrapper {
+    background: rgba(255,255,255,0.08);
+    border: none;
+    border-radius: 18px;
+    padding: 4px 14px;
+  }
+
+  .chat-panel .chat-input-area .el-button {
+    padding: 8px 16px;
+    border-radius: 16px;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  /* 聊天消息 */
+  .chat-msg {
+    max-width: 82%;
+    margin-bottom: 10px;
+  }
+
+  .msg-content {
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 14px;
+  }
+
+  .msg-sender {
+    font-size: 11px;
+    margin-bottom: 2px;
+  }
+
+  .msg-time {
+    font-size: 10px;
+  }
+
+  /* 本地视频高亮 */
+  .local-item {
+    border: none;
+  }
+
+  .pin-indicator {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #1677ff;
+  }
+
+  /* 空状态 */
+  .chat-empty,
+  .side-empty {
+    font-size: 13px;
   }
 }
 </style>

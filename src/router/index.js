@@ -27,6 +27,12 @@ const routes = [
       { path: 'users', name: 'Users', component: () => import('../views/Users.vue') },
       { path: 'rooms', name: 'Rooms', component: () => import('../views/Rooms.vue') },
       { path: 'config', name: 'Config', component: () => import('../views/Config.vue') },
+      {
+        path: 'ai-analysis',
+        name: 'AiAnalysis',
+        component: () => import('../views/AiAnalysis.vue'),
+        meta: { roles: ['ADMIN', 'COUNSELOR', 'DORM_MANAGER'] }
+      },
       { path: 'meeting', name: 'Meeting', component: () => import('../views/Meeting.vue') },
       { path: 'profile', name: 'Profile', component: () => import('../views/Profile.vue') }
     ]
@@ -42,6 +48,13 @@ router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   if ((to.path !== '/login' && to.path !== '/register') && !token) {
     next('/login')
+  } else if (to.meta.roles) {
+    const user = JSON.parse(localStorage.getItem('user') || 'null')
+    if (user && to.meta.roles.includes(user.role)) {
+      next()
+    } else {
+      next('/profile')
+    }
   } else {
     next()
   }

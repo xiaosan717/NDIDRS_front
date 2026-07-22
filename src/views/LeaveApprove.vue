@@ -27,6 +27,7 @@
         <span>{{ t('leaveApply.startDate') }}</span>
         <span>{{ t('leaveApply.endDate') }}</span>
         <span>{{ t('leaveApply.reason') }}</span>
+        <span>凭证</span>
         <span>{{ t('leaveApprove.status') }}</span>
         <span>{{ t('users.actions') }}</span>
       </div>
@@ -39,6 +40,17 @@
         <span>{{ formatDate(leave.startTime) }}</span>
         <span>{{ formatDate(leave.endTime) }}</span>
         <span>{{ leave.reason }}</span>
+        <span>
+          <el-image 
+            v-if="leave.proofImage" 
+            :src="leave.proofImage" 
+            :preview-src-list="[leave.proofImage]"
+            fit="cover"
+            class="proof-photo"
+            preview-teleported
+          />
+          <span v-else>-</span>
+        </span>
         <span :class="getStatusClass(leave.status)">{{ getStatusText(leave.status) }}</span>
         <span class="actions">
           <template v-if="leave.status === 'PENDING' || leave.status === 'COUNSELOR_APPROVED'">
@@ -263,7 +275,7 @@ onMounted(() => {
 
 .table-header {
   display: grid;
-  grid-template-columns: 1fr 1fr 2fr 2fr 3fr 1fr 2fr;
+  grid-template-columns: 1fr 1fr 1.2fr 1.2fr 2fr 80px 1fr 2fr;
   padding: 16px 24px;
   background: #f8f8f8;
   font-size: 12px;
@@ -273,12 +285,19 @@ onMounted(() => {
 
 .table-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 2fr 2fr 3fr 1fr 2fr;
+  grid-template-columns: 1fr 1fr 1.2fr 1.2fr 2fr 80px 1fr 2fr;
   padding: 16px 24px;
   border-bottom: 1px solid #f0f0f0;
   font-size: 14px;
   color: #333333;
   align-items: center;
+}
+
+.proof-photo {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .table-row:last-child {
