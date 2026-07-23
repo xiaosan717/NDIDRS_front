@@ -101,11 +101,7 @@ import { ref, computed, markRaw, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
-<<<<<<< HEAD
 import { Monitor, Document, Ticket, Warning, Clock, Setting, User, UserFilled, VideoCamera, MagicStick, More, Close } from '@element-plus/icons-vue'
-=======
-import { Monitor, Document, Ticket, Warning, Clock, Setting, User, UserFilled, VideoCamera, MagicStick } from '@element-plus/icons-vue'
->>>>>>> 6e3288089ea5774ca6af195dec9ab85df62d1007
 import { useI18n } from 'vue-i18n'
 import XiaoyeFloat from '../components/XiaoyeFloat.vue'
 
