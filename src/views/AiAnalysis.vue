@@ -5,14 +5,14 @@
         <div class="eyebrow">NDIDRS · AI</div>
         <h1>{{ t('aiAnalysis.title') }}</h1>
         <p>{{ t('aiAnalysis.subtitle') }}</p>
+        <div class="privacy-note">
+          <DataAnalysis class="privacy-icon" />
+          <span>{{ t('aiAnalysis.privacy') }}</span>
+        </div>
       </div>
       <div class="hero-owl">
         <XiaoyeOwl />
         <div class="owl-name">小夜</div>
-      </div>
-      <div class="privacy-note">
-        <DataAnalysis class="privacy-icon" />
-        <span>{{ t('aiAnalysis.privacy') }}</span>
       </div>
     </section>
 
@@ -328,8 +328,6 @@ onBeforeUnmount(() => {
   gap: 24px;
   background: linear-gradient(135deg, #0b0b0b, #27272a);
   color: #fff;
-  position: relative;
-  overflow: hidden;
 }
 
 .hero-text {
@@ -379,11 +377,11 @@ onBeforeUnmount(() => {
 }
 
 .privacy-note {
-  display: flex;
-  align-items: flex-start;
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  max-width: 340px;
-  padding: 12px 14px;
+  margin-top: 16px;
+  padding: 10px 14px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.08);
   color: #d4d4d8;
@@ -709,6 +707,7 @@ onBeforeUnmount(() => {
   .hero-card { padding: 22px; flex-direction: column; align-items: center; text-align: center; }
   .hero-owl { flex: 0 0 120px; height: 120px; order: -1; }
   .hero-card h1 { font-size: 23px; }
+  .hero-owl { display: none; }
   .privacy-note { max-width: none; }
   .control-card, .content-card { padding: 18px; }
   .stats-grid { gap: 10px; }

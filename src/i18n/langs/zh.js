@@ -77,6 +77,7 @@ export default {
     config: '系统配置',
     aiAnalysis: 'AI 智能分析',
     meeting: '视频会议',
+    dormChat: '宿舍群聊',
     profile: '个人中心',
     logout: '退出登录'
   },
@@ -128,6 +129,30 @@ export default {
     quickQuestion1: '总结最需要优先处理的风险',
     quickQuestion2: '分析晚归和缺勤的变化趋势',
     quickQuestion3: '生成一份本周管理工作建议'
+  },
+  dormChat: {
+    title: '宿舍群聊',
+    roomName: '宿舍',
+    members: '成员',
+    onlineCount: '在线',
+    placeholder: '输入消息...',
+    send: '发送',
+    emoji: '表情',
+    image: '图片',
+    video: '视频',
+    imageLimit: '图片大小不能超过5MB',
+    videoLimit: '视频大小不能超过20MB',
+    uploadFailed: '上传失败',
+    noRoom: '您尚未绑定宿舍信息，无法加入群聊',
+    loadError: '加载群聊信息失败',
+    wsConnected: '已连接',
+    wsDisconnected: '连接已断开，正在重连...',
+    wsFailed: '连接失败',
+    systemJoin: '加入了群聊',
+    systemLeave: '离开了群聊',
+    noMessages: '暂无消息，发送第一条消息吧',
+    loadMore: '加载更多',
+    noMore: '没有更多消息了'
   },
   meeting: {
     title: '视频会议',

@@ -101,7 +101,7 @@ import { ref, computed, markRaw, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
-import { Monitor, Document, Ticket, Warning, Clock, Setting, User, UserFilled, VideoCamera, MagicStick, More, Close } from '@element-plus/icons-vue'
+import { Monitor, Document, Ticket, Warning, Clock, Setting, User, UserFilled, VideoCamera, MagicStick, More, Close, ChatDotRound } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import XiaoyeFloat from '../components/XiaoyeFloat.vue'
 
@@ -145,6 +145,7 @@ const routeNameToPath = (name) => {
     'Config': 'config',
     'AiAnalysis': 'ai-analysis',
     'Meeting': 'meeting',
+    'DormChat': 'dorm-chat',
     'Profile': 'profile'
   }
   return map[name] || 'dashboard'
@@ -178,6 +179,7 @@ const currentPageName = computed(() => {
       'config': t('home.config'),
       'ai-analysis': t('home.aiAnalysis'),
       'meeting': t('home.meeting'),
+      'dorm-chat': t('home.dormChat'),
       'profile': t('home.profile')
     }
     return pageNames[routeNameToPath(route.name)] || ''
@@ -229,6 +231,10 @@ const navItems = computed(() => {
 
   if (role === 'COUNSELOR' || role === 'DORM_LEADER' || role === 'STUDENT' || role === 'DORM_MANAGER') {
     items.push({ path: 'meeting', label: t('home.meeting'), icon: markRaw(VideoCamera) })
+  }
+
+  if (role === 'STUDENT' || role === 'DORM_LEADER') {
+    items.push({ path: 'dorm-chat', label: t('home.dormChat'), icon: markRaw(ChatDotRound) })
   }
 
   items.push({ path: 'profile', label: t('home.profile'), icon: markRaw(UserFilled) })

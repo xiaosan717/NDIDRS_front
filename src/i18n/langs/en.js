@@ -77,6 +77,7 @@ export default {
     config: 'Config',
     aiAnalysis: 'AI Analysis',
     meeting: 'Meeting',
+    dormChat: 'Dorm Chat',
     profile: 'Profile',
     logout: 'Logout'
   },
@@ -128,6 +129,30 @@ export default {
     quickQuestion1: 'Summarize the risks that need immediate attention',
     quickQuestion2: 'Analyze changes in late and absence records',
     quickQuestion3: 'Generate management recommendations for this week'
+  },
+  dormChat: {
+    title: 'Dorm Chat',
+    roomName: 'Room',
+    members: 'Members',
+    onlineCount: 'Online',
+    placeholder: 'Type a message...',
+    send: 'Send',
+    emoji: 'Emoji',
+    image: 'Image',
+    video: 'Video',
+    imageLimit: 'Image size cannot exceed 5MB',
+    videoLimit: 'Video size cannot exceed 20MB',
+    uploadFailed: 'Upload failed',
+    noRoom: 'You are not bound to a dorm room, unable to join chat',
+    loadError: 'Failed to load chat info',
+    wsConnected: 'Connected',
+    wsDisconnected: 'Disconnected, reconnecting...',
+    wsFailed: 'Connection failed',
+    systemJoin: 'joined the chat',
+    systemLeave: 'left the chat',
+    noMessages: 'No messages yet, send the first one!',
+    loadMore: 'Load more',
+    noMore: 'No more messages'
   },
   meeting: {
     title: 'Video Meeting',
