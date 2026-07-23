@@ -35,7 +35,7 @@
         <div v-if="noMoreMessages && messages.length > 0" class="no-more">{{ t('dormChat.noMore') }}</div>
         <div v-if="messages.length === 0 && !loadingMore" class="no-messages">{{ t('dormChat.noMessages') }}</div>
 
-        <div v-for="(msg, index) in messages" :key="msg.id || index"
+        <div v-for="(msg, index) in messages" :key="msg.id ? msg.id : ('tmp-' + index)"
              :class="['message-item', getMessageClass(msg)]">
           <!-- 系统消息 -->
           <div v-if="msg.type === 'system'" class="system-message">
@@ -51,7 +51,7 @@
             </div>
             <div class="message-body">
               <div class="message-meta">
-                <span class="sender-name">{{ msg.sender }}</span>
+                <span class="sender-name">{{ getMessageClass(msg) === 'is-self' ? '我' : msg.sender }}</span>
                 <span class="msg-time">{{ msg.time }}</span>
               </div>
               <div class="message-content">
@@ -241,6 +241,13 @@ function normalizeMessage(msg) {
   }
 }
 
+const currentUserId = computed(() => {
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || '{}')
+    return u.id != null ? Number(u.id) : null
+  } catch { return null }
+})
+
 // WebSocket 连接
 function connectWebSocket() {
   if (!roomInfo.value?.roomId) return
@@ -260,7 +267,22 @@ function connectWebSocket() {
 
     ws.onmessage = (event) => {
       try {
-        const msg = JSON.parse(event.data)
+        const raw = JSON.parse(event.data)
+        // 系统消息（加入/离开通知）直接显示
+        if (raw.type === 'system') {
+          messages.value.push(raw)
+          nextTick(() => scrollToBottom())
+          return
+        }
+        // 过滤自己发送的消息（已通过 addLocalMessage 本地添加）
+        const wsMsgSenderId = raw.senderId != null ? Number(raw.senderId) : null
+        if (wsMsgSenderId != null && currentUserId.value != null && wsMsgSenderId === currentUserId.value) {
+          return
+        }
+        // 其他人发送的消息，标准化后添加
+        const msg = normalizeMessage(raw)
+        // 去重：避免重复添加同一条消息
+        if (msg.id && messages.value.some(m => m.id === msg.id)) return
         messages.value.push(msg)
         nextTick(() => scrollToBottom())
       } catch (e) {
@@ -290,10 +312,30 @@ function connectWebSocket() {
   }
 }
 
+// 本地添加自己发送的消息（立即显示，不等 WS 回显）
+function addLocalMessage(type, content) {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const now = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  const time = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+  messages.value.push({
+    id: Date.now(), // 临时ID，足够大不会与服务器ID冲突
+    roomId: roomInfo.value?.roomId,
+    senderId: currentUserId.value,
+    sender: user.realName || user.username || '',
+    senderAvatar: user.avatar || '',
+    type,
+    content,
+    time
+  })
+  nextTick(() => scrollToBottom())
+}
+
 // 发送文本消息
 function sendTextMessage() {
   const text = inputText.value.trim()
   if (!text || !ws || ws.readyState !== WebSocket.OPEN) return
+  addLocalMessage('TEXT', text)
   ws.send(JSON.stringify({ type: 'TEXT', content: text }))
   inputText.value = ''
   showEmoji.value = false
@@ -302,6 +344,7 @@ function sendTextMessage() {
 // 发送表情
 function sendEmoji(emoji) {
   if (!ws || ws.readyState !== WebSocket.OPEN) return
+  addLocalMessage('EMOJI', emoji)
   ws.send(JSON.stringify({ type: 'EMOJI', content: emoji }))
   showEmoji.value = false
 }
@@ -355,7 +398,9 @@ async function uploadMedia(file, type) {
     console.log('[DormChat] 上传响应:', res)
     if (res.code === 200 && res.data?.url) {
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: type === 'image' ? 'IMAGE' : 'VIDEO', content: res.data.url }))
+        const msgType = type === 'image' ? 'IMAGE' : 'VIDEO'
+        addLocalMessage(msgType, res.data.url)
+        ws.send(JSON.stringify({ type: msgType, content: res.data.url }))
       }
     } else {
       ElMessage.error(res.msg || t('dormChat.uploadFailed'))
@@ -390,8 +435,8 @@ function previewImage(url) {
 
 function getMessageClass(msg) {
   if (msg.type === 'system') return 'is-system'
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-  if (msg.senderId && currentUser.id && msg.senderId === currentUser.id) {
+  const msgSenderId = msg.senderId != null ? Number(msg.senderId) : null
+  if (msgSenderId != null && currentUserId.value != null && msgSenderId === currentUserId.value) {
     return 'is-self'
   }
   return 'is-other'
@@ -729,9 +774,11 @@ onUnmounted(() => {
 
 /* 移动端适配 */
 @media (max-width: 768px) {
-  .dorm-chat { height: calc(100vh - 120px); border-radius: 0; }
+  .dorm-chat { height: calc(100dvh - 150px); border-radius: 0; margin: -16px; padding: 0; }
+  .chat-header { padding: 12px 16px; }
   .chat-messages { padding: 12px; }
   .emoji-grid { grid-template-columns: repeat(8, 1fr); }
   .user-message { max-width: 85%; }
+  .chat-input-area { padding: 8px 12px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
 }
 </style>
