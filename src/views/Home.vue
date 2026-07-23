@@ -48,11 +48,7 @@
       
       <div class="content-wrapper">
         <div class="content-inner">
-          <router-view v-slot="{ Component }">
-            <keep-alive>
-              <component :is="Component" />
-            </keep-alive>
-          </router-view>
+          <router-view />
         </div>
       </div>
     </main>

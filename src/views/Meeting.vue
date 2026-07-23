@@ -1117,18 +1117,20 @@ const startChatPolling = async (roomId) => {
   if (chatPollingTimer) {
     clearInterval(chatPollingTimer)
   }
+  const currentUserId = userStore.user?.id
   const pollMessages = async () => {
     try {
       const res = await request.get(`/chat/${encodeURIComponent(roomId)}/messages`, {
-        params: { lastId: lastMessageId }
+        params: { limit: 50 }
       })
       if (res.code === 200 && res.data && res.data.length > 0) {
-        const currentSender = userStore.user?.realName || userStore.user?.username || 'me'
         res.data.forEach(msg => {
-          if (msg.sender !== currentSender) {
-            addChatMessage(msg.sender, msg.content, false)
-          }
+          // 只处理比已知最新ID更大的消息（新消息）
           if (msg.id && msg.id > lastMessageId) {
+            // 跳过自己发送的消息（已通过 addChatMessage 本地添加）
+            if (msg.senderId !== currentUserId) {
+              addChatMessage(msg.senderName || msg.sender, msg.content, false)
+            }
             lastMessageId = msg.id
           }
         })

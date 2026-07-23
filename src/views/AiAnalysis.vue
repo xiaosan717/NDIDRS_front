@@ -1,14 +1,17 @@
 <template>
   <div class="ai-page">
     <section class="hero-card">
-      <div>
+      <div class="hero-text">
         <div class="eyebrow">NDIDRS · AI</div>
         <h1>{{ t('aiAnalysis.title') }}</h1>
         <p>{{ t('aiAnalysis.subtitle') }}</p>
+        <div class="privacy-note">
+          <DataAnalysis class="privacy-icon" />
+          <span>{{ t('aiAnalysis.privacy') }}</span>
+        </div>
       </div>
-      <div class="privacy-note">
-        <DataAnalysis class="privacy-icon" />
-        <span>{{ t('aiAnalysis.privacy') }}</span>
+      <div class="hero-owl">
+        <XiaoyeOwl />
       </div>
     </section>
 
@@ -169,6 +172,7 @@ import { ElMessage } from 'element-plus'
 import { DataAnalysis, Loading, MagicStick, TrendCharts, UserFilled, Warning } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import request from '../utils/request'
+import XiaoyeOwl from '../components/XiaoyeOwl.vue'
 
 const { t, locale } = useI18n()
 
@@ -319,10 +323,21 @@ onBeforeUnmount(() => {
   padding: 28px;
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   gap: 24px;
   background: linear-gradient(135deg, #0b0b0b, #27272a);
   color: #fff;
+}
+
+.hero-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-owl {
+  width: 180px;
+  height: 180px;
+  flex-shrink: 0;
 }
 
 .eyebrow {
@@ -346,11 +361,11 @@ onBeforeUnmount(() => {
 }
 
 .privacy-note {
-  display: flex;
-  align-items: flex-start;
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  max-width: 340px;
-  padding: 12px 14px;
+  margin-top: 16px;
+  padding: 10px 14px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.08);
   color: #d4d4d8;
@@ -675,6 +690,7 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
   .hero-card { padding: 22px; flex-direction: column; align-items: flex-start; }
   .hero-card h1 { font-size: 23px; }
+  .hero-owl { display: none; }
   .privacy-note { max-width: none; }
   .control-card, .content-card { padding: 18px; }
   .stats-grid { gap: 10px; }
