@@ -31,10 +31,26 @@
           <span class="form-text">{{ form.className }}</span>
         </el-form-item>
         <el-form-item v-if="form.building" :label="t('profile.building')">
-          <span class="form-text">{{ form.building }}</span>
+          <el-select v-if="canEditDorm" v-model="form.building" :placeholder="t('register.pleaseSelectBuilding')" @change="onBuildingChange">
+            <el-option v-for="b in buildingList" :key="b.id" :label="b.buildingName" :value="b.buildingName" />
+          </el-select>
+          <span v-else class="form-text">{{ form.building }}</span>
+        </el-form-item>
+        <el-form-item v-if="canEditDorm && !form.building" :label="t('profile.building')">
+          <el-select v-model="form.building" :placeholder="t('register.pleaseSelectBuilding')" @change="onBuildingChange">
+            <el-option v-for="b in buildingList" :key="b.id" :label="b.buildingName" :value="b.buildingName" />
+          </el-select>
         </el-form-item>
         <el-form-item v-if="form.room" :label="t('profile.room')">
-          <span class="form-text">{{ form.room }}</span>
+          <el-select v-if="canEditDorm" v-model="form.room" :placeholder="t('register.pleaseSelectRoom')">
+            <el-option v-for="r in roomList" :key="r.id" :label="r.roomNumber" :value="r.roomNumber" />
+          </el-select>
+          <span v-else class="form-text">{{ form.room }}</span>
+        </el-form-item>
+        <el-form-item v-if="canEditDorm && !form.room" :label="t('profile.room')">
+          <el-select v-model="form.room" :placeholder="t('register.pleaseSelectRoom')" :disabled="!form.building">
+            <el-option v-for="r in roomList" :key="r.id" :label="r.roomNumber" :value="r.roomNumber" />
+          </el-select>
         </el-form-item>
         <el-form-item v-if="form.college" :label="form.role === 'ADMIN' ? t('profile.department') : t('profile.college')">
           <span class="form-text">{{ form.college }}</span>
@@ -98,6 +114,31 @@ const form = ref({
   avatar: ''
 })
 
+const canEditDorm = computed(() => {
+  const role = userStore.user?.role
+  return role === 'STUDENT' || role === 'DORM_LEADER'
+})
+
+const buildingList = ref([])
+const roomList = ref([])
+
+const loadBuildings = async () => {
+  try {
+    const res = await request.get('/dict/buildings')
+    if (res.code === 200) buildingList.value = res.data || []
+  } catch (e) { console.error(e) }
+}
+
+const onBuildingChange = async (buildingName) => {
+  form.value.room = ''
+  roomList.value = []
+  if (!buildingName) return
+  try {
+    const res = await request.get('/dict/rooms', { params: { buildingName } })
+    if (res.code === 200) roomList.value = res.data || []
+  } catch (e) { console.error(e) }
+}
+
 const passwordForm = ref({
   oldPassword: '',
   newPassword: '',
@@ -115,10 +156,27 @@ const getRoleText = (role) => {
   return roleMap[role] || role
 }
 
-const loadUserInfo = () => {
-  const user = userStore.user
-  if (user) {
-    form.value = {
+const loadUserInfo = async () => {
+  // 优先从后端拉取最新数据
+  const localUser = userStore.user
+  if (localUser?.id) {
+    try {
+      const res = await request.get(`/users/${localUser.id}`)
+      if (res.code === 200 && res.data) {
+        userStore.setUser(res.data)
+        applyUserToForm(res.data)
+        return
+      }
+    } catch (e) { console.error('获取用户信息失败:', e) }
+  }
+  // 降级使用 localStorage
+  if (localUser) {
+    applyUserToForm(localUser)
+  }
+}
+
+const applyUserToForm = (user) => {
+  form.value = {
     id: user.id,
     username: user.username,
     realName: user.realName,
@@ -130,7 +188,6 @@ const loadUserInfo = () => {
     college: user.college || '',
     phone: user.phone || '',
     avatar: user.avatar || ''
-  }
   }
 }
 
@@ -165,10 +222,32 @@ const handleAvatarChange = async (event) => {
 
 const handleUpdateProfile = async () => {
   try {
+    console.log('更新用户信息:', { building: form.value.building, room: form.value.room })
     const res = await request.put('/users', form.value)
+    console.log('更新响应:', res)
     if (res.code === 200) {
       ElMessage.success(t('profile.updateSuccess'))
-      userStore.setUser(form.value)
+      // 从后端重新拉取完整用户数据，确保所有字段同步
+      const freshRes = await request.get(`/users/${form.value.id}`)
+      console.log('刷新用户数据:', freshRes?.data ? { building: freshRes.data.building, room: freshRes.data.room } : '无数据')
+      if (freshRes.code === 200 && freshRes.data) {
+        const freshUser = freshRes.data
+        userStore.setUser(freshUser)
+        // 同步表单（保留用户刚选择的值）
+        form.value.building = freshUser.building || ''
+        form.value.room = freshUser.room || ''
+        form.value.phone = freshUser.phone || ''
+        form.value.avatar = freshUser.avatar || ''
+        // 只加载宿舍列表，不清空已选的宿舍号
+        if (canEditDorm.value && form.value.building) {
+          try {
+            const roomRes = await request.get('/dict/rooms', { params: { buildingName: form.value.building } })
+            if (roomRes.code === 200) roomList.value = roomRes.data || []
+          } catch (e) { console.error(e) }
+        }
+      } else {
+        userStore.setUser(form.value)
+      }
     }
   } catch (error) {
     ElMessage.error(t('profile.updateFailed'))
@@ -204,8 +283,14 @@ const handleChangePassword = async () => {
   }
 }
 
-onMounted(() => {
-  loadUserInfo()
+onMounted(async () => {
+  await loadUserInfo()
+  if (canEditDorm.value) {
+    loadBuildings()
+    if (form.value.building) {
+      await onBuildingChange(form.value.building)
+    }
+  }
 })
 </script>
 

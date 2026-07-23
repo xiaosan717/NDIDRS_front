@@ -34,6 +34,7 @@ const routes = [
         meta: { roles: ['ADMIN', 'COUNSELOR', 'DORM_MANAGER'] }
       },
       { path: 'meeting', name: 'Meeting', component: () => import('../views/Meeting.vue') },
+      { path: 'dorm-chat', name: 'DormChat', component: () => import('../views/DormChat.vue') },
       { path: 'profile', name: 'Profile', component: () => import('../views/Profile.vue') }
     ]
   }

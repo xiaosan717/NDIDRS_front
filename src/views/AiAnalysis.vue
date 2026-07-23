@@ -1,22 +1,11 @@
 <template>
   <div class="ai-page">
     <section class="hero-card">
-<<<<<<< HEAD
-      <div class="hero-text">
-=======
       <div>
->>>>>>> 6e3288089ea5774ca6af195dec9ab85df62d1007
         <div class="eyebrow">NDIDRS · AI</div>
         <h1>{{ t('aiAnalysis.title') }}</h1>
         <p>{{ t('aiAnalysis.subtitle') }}</p>
       </div>
-<<<<<<< HEAD
-      <div class="hero-owl">
-        <XiaoyeOwl />
-        <div class="owl-name">小夜</div>
-      </div>
-=======
->>>>>>> 6e3288089ea5774ca6af195dec9ab85df62d1007
       <div class="privacy-note">
         <DataAnalysis class="privacy-icon" />
         <span>{{ t('aiAnalysis.privacy') }}</span>
@@ -180,10 +169,6 @@ import { ElMessage } from 'element-plus'
 import { DataAnalysis, Loading, MagicStick, TrendCharts, UserFilled, Warning } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import request from '../utils/request'
-<<<<<<< HEAD
-import XiaoyeOwl from '../components/XiaoyeOwl.vue'
-=======
->>>>>>> 6e3288089ea5774ca6af195dec9ab85df62d1007
 
 const { t, locale } = useI18n()
 
@@ -334,45 +319,10 @@ onBeforeUnmount(() => {
   padding: 28px;
   display: flex;
   justify-content: space-between;
-<<<<<<< HEAD
-  align-items: center;
-  gap: 24px;
-  background: linear-gradient(135deg, #0b0b0b, #27272a);
-  color: #fff;
-  position: relative;
-  overflow: hidden;
-}
-
-.hero-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.hero-owl {
-  flex: 0 0 160px;
-  height: 160px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.owl-name {
-  position: absolute;
-  bottom: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 12px;
-  font-weight: 600;
-  color: #c4b5fd;
-  letter-spacing: 2px;
-  white-space: nowrap;
-=======
   align-items: flex-end;
   gap: 24px;
   background: linear-gradient(135deg, #0b0b0b, #27272a);
   color: #fff;
->>>>>>> 6e3288089ea5774ca6af195dec9ab85df62d1007
 }
 
 .eyebrow {
@@ -723,12 +673,7 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 768px) {
-<<<<<<< HEAD
-  .hero-card { padding: 22px; flex-direction: column; align-items: center; text-align: center; }
-  .hero-owl { flex: 0 0 120px; height: 120px; order: -1; }
-=======
   .hero-card { padding: 22px; flex-direction: column; align-items: flex-start; }
->>>>>>> 6e3288089ea5774ca6af195dec9ab85df62d1007
   .hero-card h1 { font-size: 23px; }
   .privacy-note { max-width: none; }
   .control-card, .content-card { padding: 18px; }
