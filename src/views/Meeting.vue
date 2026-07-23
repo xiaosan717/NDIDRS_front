@@ -32,7 +32,13 @@
 
         <el-form v-if="canStart" :model="meetingForm" label-width="100px" class="meeting-form">
           <el-form-item :label="t('meeting.roomId')">
-            <el-input v-model="meetingForm.roomId" :placeholder="t('meeting.roomIdPlaceholder')" />
+            <div class="room-id-row">
+              <el-input v-model="meetingForm.roomId" readonly />
+              <el-button type="primary" plain @click="refreshRandomRoomId">
+                <el-icon><Refresh /></el-icon>
+                换一个
+              </el-button>
+            </div>
           </el-form-item>
           <el-form-item :label="t('meeting.password')">
             <el-input v-model="meetingForm.password" :placeholder="t('meeting.passwordPlaceholder')" show-password />
@@ -344,8 +350,8 @@
         <el-form-item :label="t('meeting.roomId')">
           <el-input v-model="joinForm.roomId" :placeholder="t('meeting.roomIdPlaceholder')" />
         </el-form-item>
-        <el-form-item :label="t('meeting.password')" v-if="false">
-          <el-input v-model="joinForm.password" show-password />
+        <el-form-item :label="t('meeting.password')">
+          <el-input v-model="joinForm.password" :placeholder="t('meeting.passwordPlaceholder')" show-password />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -362,7 +368,7 @@ import { useI18n } from 'vue-i18n'
 import { useUserStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
 import {
-  Lock, VideoCamera, Connection, SwitchButton,
+  Lock, VideoCamera, Connection, SwitchButton, Refresh,
   Microphone, Mute, VideoPause, Loading, WarningFilled,
   Share, Grid, UserFilled, ChatDotRound, Close, ChatLineRound,
   User, Monitor
@@ -393,6 +399,7 @@ const remoteVideoRefs = {}
 let trtcClient = null
 let localStream = null
 let screenStream = null
+let activePassword = '' // 当前会议使用的密码（发起时设置，enterMeeting校验时用）
 
 const meetingForm = reactive({
   roomId: '',
@@ -577,10 +584,8 @@ const loadCanStart = async () => {
     if (res.code === 200) {
       canStart.value = res.data.canStart
       scopeInfo.value = res.data
-      if (res.data.role === 'COUNSELOR') {
-        meetingForm.roomId = `class_${res.data.college}_${res.data.grade}_${res.data.className}`
-      } else if (res.data.role === 'DORM_LEADER') {
-        meetingForm.roomId = `dorm_${res.data.building}_${res.data.room}`
+      if (res.data.canStart && !meetingForm.roomId) {
+        meetingForm.roomId = generateRandomRoomId()
       }
     } else {
       errorMsg.value = res.message || '查询权限失败'
@@ -593,13 +598,26 @@ const loadCanStart = async () => {
   }
 }
 
+// 生成格式：xxx-xxx-xxx 的随机数字会议号（000-000-000 ~ 999-999-999）
+const generateRandomRoomId = () => {
+  const pad = (n) => String(n).padStart(3, '0')
+  const a = Math.floor(Math.random() * 1000)
+  const b = Math.floor(Math.random() * 1000)
+  const c = Math.floor(Math.random() * 1000)
+  return `${pad(a)}-${pad(b)}-${pad(c)}`
+}
+
+const refreshRandomRoomId = () => {
+  meetingForm.roomId = generateRandomRoomId()
+}
+
 const genRoomId = (input) => {
   let hash = 0
   for (let i = 0; i < input.length; i++) {
     hash = ((hash << 5) - hash) + input.charCodeAt(i)
     hash = hash & hash
   }
-  return Math.abs(hash) % 100000
+  return Math.abs(hash) % 1000000000
 }
 
 const goToPreview = async (type) => {
@@ -608,21 +626,37 @@ const goToPreview = async (type) => {
       ElMessage.warning(t('meeting.pleaseInputRoomId'))
       return
     }
+    // 发起会议时注册会议密码（空密码=无需密码）
+    try {
+      const regRes = await request.post('/trtc/registerRoom', {
+        roomId: meetingForm.roomId,
+        password: meetingForm.password || ''
+      })
+      if (regRes.code !== 200) {
+        ElMessage.error(regRes.message || '注册会议失败')
+        return
+      }
+      activePassword = meetingForm.password || ''
+    } catch (e) {
+      ElMessage.error('注册会议失败: ' + (e.response?.data?.message || e.message))
+      return
+    }
   } else {
     if (!joinForm.roomId) {
       ElMessage.warning(t('meeting.pleaseInputRoomId'))
       return
     }
     meetingForm.roomId = joinForm.roomId
-    
+
     try {
       const res = await request.get('/trtc/canJoin', {
-        params: { roomId: meetingForm.roomId }
+        params: { roomId: meetingForm.roomId, password: joinForm.password || '' }
       })
       if (res.code !== 200) {
         ElMessage.error(res.message)
         return
       }
+      activePassword = joinForm.password || ''
     } catch (e) {
       ElMessage.error('验证会议权限失败: ' + (e.response?.data?.message || e.message))
       return
@@ -746,6 +780,22 @@ const enterMeetingFromPreview = async () => {
 
 const enterMeeting = async (roomId) => {
   try {
+    // 进入会议前做二次权限校验，防止绕过加入流程直接进入
+    try {
+      const checkRes = await request.get('/trtc/canJoin', {
+        params: { roomId, password: activePassword || '' }
+      })
+      if (checkRes.code !== 200) {
+        ElMessage.error(checkRes.message || '无权进入该会议')
+        pageState.value = 'lobby'
+        return
+      }
+    } catch (e) {
+      ElMessage.error('会议权限校验失败: ' + (e.response?.data?.message || e.message))
+      pageState.value = 'lobby'
+      return
+    }
+
     const res = await request.get('/trtc/userSig')
     if (res.code !== 200) {
       ElMessage.error(res.message)
@@ -1273,6 +1323,22 @@ onUnmounted(() => {
 
 .meeting-form {
   margin-bottom: 32px;
+}
+
+.room-id-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+}
+
+.room-id-row .el-input {
+  flex: 1;
+}
+
+.room-id-row .el-button {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .action-buttons {
